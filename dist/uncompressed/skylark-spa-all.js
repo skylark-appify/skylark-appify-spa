@@ -1363,7 +1363,7 @@ define('skylark-router/router',[
             }
         }
 
-        var initPath;
+        var initPath = "";
 
         if (router.useHistoryApi) {
             initPath = window.location.pathname;
@@ -1377,6 +1377,9 @@ define('skylark-router/router',[
             initPath = "/";
         }
 
+        if (!initPath.startsWith("/")) {
+            initPath = "/" + initPath;
+        }
         /*
         eventer.on(document.body, "click", "a[href]", function(e) {
             var elm = e.currentTarget,
@@ -1710,7 +1713,7 @@ define('skylark-spa/spa',[
             document.title = config.title;
             var baseUrl = config.baseUrl; 
             if (baseUrl === undefined) {
-                baseUrl = config.baseUrl = require.toUrl("");
+                baseUrl = config.baseUrl = document.location.pathname;
             }
             router.baseUrl(baseUrl);
 
