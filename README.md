@@ -1,5 +1,6 @@
 # skylark-spa
-An Elegant HTML5 Single Page Application Framework
+An Elegant HTML5 Single Page Application Framework  
+![アーキテクチャ](https://github.com/skylarkjs/skylark-spa/blob/master/docs/architecure.jpg "アーキテクチャ")
 
 ## Features
 
