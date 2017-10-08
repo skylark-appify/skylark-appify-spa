@@ -9,7 +9,7 @@ define([
 		},
 	    "plugins" : {
 	      "highlight" : {
-	      	  hookers: "routed",
+	      	  hookers: "starting started routing routed",
 	      	  controller : {
 	      	  	type  : "scripts/plugins/highlight/HighlightController"
 	      	  }
