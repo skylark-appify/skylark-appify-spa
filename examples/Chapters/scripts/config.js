@@ -8,24 +8,30 @@ define([
 			"routeViewer" : "#yield"
 		},
 	    "plugins" : {
-	      "highlight" : {
-	      	  hookers: "starting started routing routed",
-	      	  controller : {
-	      	  	type  : "scripts/plugins/highlight/HighlightController"
-	      	  }
-	      }
+		    "app": {
+		      "hookers": "starting started",
+		      "controller": {
+		        "type": "scripts/plugins/app/AppController"
+		      }
+		    },
+		    "highlight": {
+		      "hookers": "routing routed",
+		      "controller": {
+		        "type": "scripts/plugins/highlight/HighlightController"
+		      }
+		    }
 	    },
 	    "routes" : {
 	      "home": {
-	          pathto : "/",
-	          controller : {
-	          	type : "scripts/routes/home/HomeController"
+	          "pathto" : "/",
+	          "controller" : {
+	          	"type" : "scripts/routes/home/HomeController"
 	          }
 	      },
 	      "chapter": {
-	          pathto : "/chapter/:id",
-	          controller : {
-	          	type : "scripts/routes/chapter/ChapterController"
+	          "pathto" : "/chapter/:id",
+	          "controller" : {
+	          	"type" : "scripts/routes/chapter/ChapterController"
 	          }
 	      }
 	    }
