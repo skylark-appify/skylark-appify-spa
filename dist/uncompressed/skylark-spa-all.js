@@ -278,7 +278,7 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
         on: function(events,selector,data,callback,ctx,/*used internally*/one) {
 	        var self = this,
 	        	_hub = this._hub || (this._hub = {});
-	        
+
 	        if (isPlainObject(events)) {
 	        	ctx = callback;
 	            each(events, function(type, fn) {
@@ -286,24 +286,24 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
 	            });
 	            return this;
 	        }
-	        
+
 	        if (!isString(selector) && !isFunction(callback)) {
 	        	ctx = callback;
 	            callback = data;
 	            data = selector;
 	            selector = undefined;
 	        }
-	        
+
 	        if (isFunction(data)) {
 	            ctx = callback;
 	            callback = data;
 	            data = null;
 	        }
-	
+
 	        if (isString(events)) {
 	            events = events.split(/\s/)
 	        }
-	        
+
 	        events.forEach(function(name) {
 	            (_hub[name] || (_hub[name] = [])).push({
 	                fn: callback,
@@ -313,25 +313,25 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
 	                one: one
 	            });
 	        });
-	
+
 	        return this;
 	    },
-	
+
 	    one: function(events,selector,data,callback,ctx) {
 	        return this.on(events,selector,data,callback,ctx,1);
 	    },
-	
+
 	    trigger: function(e/*,argument list*/) {
 	    	if (!this._hub) {
 	    		return this;
 	    	}
-	    	
+
 	    	var self = this;
-	    	
+
 	    	if (isString(e)) {
 	    		e = new CustomEvent(e);
 	    	}
-	    	
+
 	        var args = slice.call(arguments,1);
             if (isDefined(args)) {
                 args = [e].concat(args);
@@ -343,10 +343,10 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
 		        if (!listeners){
 		        	return;
 		        }
-	        
+
 		        var len = listeners.length,
 		        	reCompact = false;
-		        
+
 		        for (var i = 0; i < len; i++) {
 		        	var listener = listeners[i];
 		            if (e.data) {
@@ -360,38 +360,38 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
 		            if (listener.one){
 		            	listeners[i] = null;
 		            	reCompact = true;
-		            }	        		
+		            }
 		        }
-		        
+
 		        if (reCompact){
 		        	self._hub[eventName] = compact(listeners);
 		        }
-	        	
+
 	        });
 	        return this;
 	    },
-	
+
 	    listened: function(event) {
 	        var evtArr = ((this._hub || (this._events = {}))[event] || []);
 	        return evtArr.length > 0;
 	    },
-	
+
 	    listenTo: function(obj, event, callback,/*used internally*/one) {
 	        if (!obj) {
 	        	return this;
 	        }
 
-	        // Bind callbacks on obj, 
+	        // Bind callbacks on obj,
 	        if (isString(callback)) {
 	        	callback = this[callback];
 	        }
-	        
+
 	        if (one){
 		        obj.one(event,callback,this);
 	        } else {
 		        obj.on(event,callback,this);
 	        }
-	        
+
 	        //keep track of them on listening.
 	        var listeningTo = this._listeningTo || (this._listeningTo = []),
 	        	listening;
@@ -416,38 +416,38 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
 	        if (listeningEvent.indexOf(callback)==-1) {
 	        	listeningEvent.push(callback);
 	        }
-	
+
 	        return this;
 	    },
-	    
+
 	    listenToOnce: function(obj, event, callback) {
 	    	return this.listenTo(obj,event,callback,1);
 	    },
-	    
+
 	    off: function(events, callback) {
 	        var _hub = this._hub || (this._hub = {});
 	        if (isString(events)) {
 	            events = events.split(/\s/)
 	        }
-	
+
 	        events.forEach(function(name) {
 	            var evts = _hub[name];
 	            var liveEvents = [];
-	
+
 	            if (evts && callback) {
 	                for (var i = 0, len = evts.length; i < len; i++) {
 	                    if (evts[i].fn !== callback && evts[i].fn._ !== callback)
 	                        liveEvents.push(evts[i]);
 	                }
 	            }
-	
+
 	            if (liveEvents.length) {
 	            	_hub[name] = liveEvents;
 	            } else {
 	            	delete _hub[name];
 	            }
 	        });
-	
+
 	        return this;
 	    },
 	    unlistenTo : function(obj, event, callback) {
@@ -457,46 +457,46 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
 	        }
 	        for (var i = 0; i < listeningTo.length; i++) {
 	          var listening = listeningTo[i];
-	          
+
 	          if (obj && obj != listening.obj) {
 	        	  continue;
 	          }
-	          
+
 	          var listeningEvents = listening.events;
 	          for (var eventName in listeningEvents) {
 	        	 if (event && event != eventName) {
 	        		 continue;
 	        	 }
-	        	 
+
 	        	 listeningEvent = listeningEvents[eventName];
-	        	 
+
 	        	 for (var j=0;j<listeningEvent.length;j++) {
 	        		 if (!callback || callback == listeningEvent[i]) {
 	        			 listening.obj.off(eventName, listeningEvent[i], this);
 	        			 listeningEvent[i] = null;
 	        		 }
 	        	 }
-	        	 
+
 	        	 listeningEvent = listeningEvents[eventName] = compact(listeningEvent);
-	        	 
+
 	        	 if (isEmptyObject(listeningEvent)) {
-	        		 listeningEvents[eventName] = null; 
+	        		 listeningEvents[eventName] = null;
 	        	 }
-	        	 
+
 	          }
-	          
+
 	          if (isEmptyObject(listeningEvents)) {
 	        	  listeningTo[i] = null;
 	          }
 	        }
-	        
+
 	        listeningTo = this._listeningTo = compact(listeningTo);
 	        if (isEmptyObject(listeningTo)) {
 	        	this._listeningTo = null;
 	        }
-        
+
 	        return this;
-	    }  
+	    }
     });
 
     function compact(array) {
@@ -504,15 +504,15 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
             return item != null;
         });
     }
-    
+
     function dasherize(str) {
         return str.replace(/::/g, '/')
             .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
             .replace(/([a-z\d])([A-Z])/g, '$1_$2')
             .replace(/_/g, '-')
             .toLowerCase();
-    }    
-    
+    }
+
     function deserializeValue(value) {
         try {
             return value ?
@@ -637,7 +637,7 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
 
         return -1;
     }
-    
+
     function inherit(ctor, base) {
         var f = function() {};
         f.prototype = base.prototype;
@@ -650,7 +650,7 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
     }
 
     function isArrayLike(obj) {
-        return !isString(obj) && typeof obj.length == 'number';
+        return !isString(obj) && !(obj.nodeName && obj.nodeName == "#text") && typeof obj.length == 'number';
     }
 
     function isBoolean(obj) {
@@ -778,13 +778,13 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
     function trim(str) {
         return str == null ? "" : String.prototype.trim.call(str);
     }
-    
+
     function removeItem(items,item) {
     	if (isArray(items)) {
         	var idx = items.indexOf(item);
         	if (idx != -1) {
         		items.splice(idx, 1);
-        	}    		
+        	}
     	} else if (isPlainObject(items)) {
     		for (var key in items) {
     			if (items[key] == item) {
@@ -910,7 +910,7 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
     function uid(obj) {
         return obj._uid || obj.id || (obj._uid = _uid++);
     }
-    
+
     function uniq(array) {
         return filter.call(array, function(item, idx) {
             return array.indexOf(item) == idx;
@@ -920,7 +920,7 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
     function langx() {
         return langx;
     }
-    
+
     mixin(langx, {
         camelCase: function(str) {
             return str.replace(/-([\da-z])/g, function(a) {
@@ -961,7 +961,7 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
         },
 
         isDocument: isDocument,
-        
+
         isEmptyObject: isEmptyObject,
 
         isFunction: isFunction,
@@ -997,7 +997,7 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
         proxy: proxy,
 
         removeItem: removeItem,
-        
+
         returnTrue: function() {
             return true;
         },
@@ -1015,14 +1015,16 @@ define('skylark-langx/langx',["./skylark"], function(skylark) {
         trim: trim,
 
         type: type,
-        
+
         uid: uid,
-        
+
         uniq: uniq,
 
         upperFirst: function(str) {
             return str.charAt(0).toUpperCase() + str.slice(1);
-        }
+        },
+
+        URL: window.URL || window.webkitURL
 
     });
 
@@ -1191,10 +1193,10 @@ define('skylark-router/router',[
     // refresh the current route
     function dispatch(ctx) {
 
-        if (_prevCtx) {
-            var ret = _prevCtx.route.exit({
-                path: _prevCtx.path,
-                params: _prevCtx.params
+        if (_curCtx) {
+            var ret = _curCtx.route.exit({
+                path: _curCtx.path,
+                params: _curCtx.params
             }, true);
             if (!ret) {
                 return;
