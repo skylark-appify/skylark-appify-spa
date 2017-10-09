@@ -26,9 +26,6 @@ index.html is the host HTML where the application runs, and the name can be free
 The index.html can be an empty HTML file, the developer can also directly define the basic layout of the application in this file.
 1. Controller  
 Controllers are the active parts of a skylark single page application. They define how the user can interact with the skylark application.  
-The data that a controller can access is defined in the corresponding context, Different instances of controllers and contexts exist within a skylark application. 
-Controllers contain the process logic of a skylark application; they hold the context data and care for event handling and navigation.  
-There are four types of controllers in an ABAP Web Dynpro component. These different controller types differ in the entities they are composed of:
    1. Route Controller  
 Each route consists of the route config and exactly one route controller. route events are sent to the corresponding routing controller for processing. 
 route events are follows :
@@ -47,6 +44,8 @@ Each plugin consists of the plugin config and exactly one route controller. glob
 Global events are follows :
       * starting  
 The application is starting.
+      * started  
+The application is started.
       * routing  
 The application is changing current route.
       * routed  
