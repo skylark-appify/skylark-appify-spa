@@ -5,8 +5,8 @@ define([
 ], function(skylark, langx, router) {
     var Deferred = langx.Deferred;
 
-    function createEvent(type,props) {
-        var e = new CustomEvent(type,props);
+    function createEvent(type, props) {
+        var e = new CustomEvent(type, props);
         return langx.safeMixin(e, props);
     }
 
@@ -47,15 +47,10 @@ define([
                 content = setting.content,
                 contentPath = setting.contentPath;
 
-            
-            if (controllerSetting && !controller) {
-                require([controllerSetting.type], function(type) {
-                    controller = self.controller = new type(controllerSetting);
-                    d.resolve();
-                });
-            } else {
+            require([controllerSetting.type], function(type) {
+                controller = self.controller = new type(controllerSetting);
                 d.resolve();
-            }
+            });
 
             return d.then(function() {
                 var e = createEvent("preparing", {
@@ -142,6 +137,7 @@ define([
                 this._rvc.appendChild(content);
             }
             curCtx.route.trigger(createEvent("rendered", {
+                route: curCtx.route,
                 content: content
             }));
         }
@@ -152,7 +148,7 @@ define([
 
         init: function(name, setting) {
             this.name = name;
-            this._setting = setting; 
+            this._setting = setting;
         },
 
 
@@ -162,27 +158,32 @@ define([
                 controllerSetting = setting.controller,
                 controller = this.controller,
                 self = this;
-
-            if (controllerSetting && !controller) {
-                require([controllerSetting.type], function(type) {
-                    controller = self.controller = new type(controllerSetting);
-                    router.on(setting.hookers, {
-                        plugin: self
-                    }, langx.proxy(controller.perform, controller));
-                    d.resolve();
-                });
-            } else {
-                langx.each(setting.hookers, function(eventName, hooker) {
-                    router.on(eventName, {
-                        plugin: self
-                    }, hooker);
-                });
+            require([controllerSetting.type], function(type) {
+                controller = self.controller = new type(controllerSetting);
+                router.on(setting.hookers, {
+                    plugin: self
+                }, langx.proxy(controller.perform, controller));
                 d.resolve();
-            }
-
-            return d.then(function() {
-                self._prepared = true;
             });
+            return d.then(function() {
+                var e = createEvent("preparing", {
+                    route: self,
+                    result: true
+                });
+                self.trigger(e);
+                return Deferred.when(e.result).then(function() {
+                    self._prepared = true;
+                });
+            });
+        },
+
+        trigger: function(e) {
+            var controller = this.controller;
+            if (controller) {
+                return controller.perform(e);
+            } else {
+                return this.overrided(e);
+            }
         }
     });
 
@@ -226,7 +227,7 @@ define([
             this._page = new spa.Page(config.page);
 
             document.title = config.title;
-            var baseUrl = config.baseUrl; 
+            var baseUrl = config.baseUrl;
             if (baseUrl === undefined) {
                 baseUrl = config.baseUrl = (new langx.URL(document.baseURI)).pathname;
             }
@@ -257,9 +258,6 @@ define([
                 return Deferred.resolve();
             }
             var self = this;
-            router.trigger(createEvent("starting", {
-                spa: self
-            }));
             var promises1 = langx.map(router.routes(), function(route, name) {
                     if (route.lazy === false) {
                         return route.prepare();
@@ -270,7 +268,10 @@ define([
                 });
 
 
-            return Deferred.all(promises1.concat(promises2)).then(function(){
+            return Deferred.all(promises1.concat(promises2)).then(function() {
+                router.trigger(createEvent("starting", {
+                    spa: self
+                }));
                 this._prepared = true;
             });
         },
