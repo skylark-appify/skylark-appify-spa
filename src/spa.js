@@ -167,7 +167,7 @@ define([
             });
             return d.then(function() {
                 var e = createEvent("preparing", {
-                    route: self,
+                    plugin: self,
                     result: true
                 });
                 self.trigger(e);
