@@ -148,9 +148,17 @@ define([
 
         init: function(name, setting) {
             this.name = name;
+
+            if (langx.isString(setting.hookers)) {
+                setting.hookers = setting.hookers.split(" ");
+            }
             this._setting = setting;
         },
 
+        isHooked : function(eventName) {
+            var hookers = this._setting.hookers || [];
+            return hookers.indexOf(eventName) > -1;
+        },
 
         prepare: function() {
             var d = new Deferred(),
@@ -258,21 +266,32 @@ define([
                 return Deferred.resolve();
             }
             var self = this;
-            var promises1 = langx.map(router.routes(), function(route, name) {
-                    if (route.lazy === false) {
-                        return route.prepare();
+
+            var promises0 = langx.map(this._plugins, function(plugin, name) {
+                    if (plugin.isHooked("starting")) {
+                        return plugin.prepare();
                     }
-                }),
-                promises2 = langx.map(this._plugins, function(plugin, name) {
-                    return plugin.prepare();
                 });
 
-
-            return Deferred.all(promises1.concat(promises2)).then(function() {
+            return Deferred.all(promises0).then(function() {
                 router.trigger(createEvent("starting", {
                     spa: self
                 }));
-                this._prepared = true;
+                var promises1 = langx.map(router.routes(), function(route, name) {
+                        if (route.lazy === false) {
+                            return route.prepare();
+                        }
+                    }),
+                    promises2 = langx.map(self._plugins, function(plugin, name) {
+                        if (!plugin.isHooked("starting")) {
+                            return plugin.prepare();
+                        }
+                    });
+
+
+                return Deferred.all(promises1.concat(promises2)).then(function() {
+                    self._prepared = true;
+                });
             });
         },
 
