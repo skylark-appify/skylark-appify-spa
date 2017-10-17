@@ -9,11 +9,11 @@ define([
 	return spa.RouteController.inherit({
         klassName: "ChapterController",
 
-        prepare() {
+        prepare: function() {
         	//return this.overrided();
         },
 
-        rendering(e) {
+        rendering:function(e) {
             var html;
             switch(e.context.params.id) {
                 case "1" : html = tpl1;
@@ -28,7 +28,7 @@ define([
             e.content = html;
         },
 
-        exiting(e) {
+        exiting:function(e) {
             var field = $('[name="field"]').val();
             if (field) {
                 var ret = confirm('Are you sure you want to quit this chapter ?');

@@ -8,11 +8,11 @@ define([
 	return spa.RouteController.inherit({
         klassName: "HomeController",
 
-        rendering(e) {
+        rendering:function(e) {
             e.content = tpl;
         },
 
-    	exited(e) {
+    	exited:function(e) {
             console.log('good bye Home');
     	}
 	})
