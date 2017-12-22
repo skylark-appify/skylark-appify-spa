@@ -1,7 +1,7 @@
 /**
  * skylark-spa - An Elegant  HTML5 Single Page Application Framework.
  * @author Hudaokeji Co.,Ltd
- * @version v0.9.3
+ * @version v0.9.5-beta
  * @link www.skylarkjs.org
  * @license MIT
  */
@@ -223,6 +223,9 @@ define('skylark-spa/spa',[
             var curCtx = router.current(),
                 prevCtx = router.previous();
             var content = curCtx.route.render(curCtx);
+            if (content===undefined || content===null) {
+                return;
+            }
             if (langx.isString(content)) {
                 this._rvc.innerHTML = content;
             } else {

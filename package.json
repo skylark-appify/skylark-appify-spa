@@ -1,6 +1,6 @@
 {
   "name": "skylark-spa",
-  "version": "0.9.4",
+  "version": "0.9.5-beta",
   "description": "An Elegant  HTML5 Single Page Application Framework.",
   "main": "-",
   "scripts": {
