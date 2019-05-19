@@ -1,5 +1,5 @@
 /**
- * skylark-spa - An Elegant  HTML5 Single Page Application Framework.
+ * skylark-fw-spa - An Elegant  HTML5 Single Page Application Framework.
  * @author Hudaokeji Co.,Ltd
  * @version v0.9.5-beta
  * @link www.skylarkjs.org
@@ -37,11 +37,16 @@
                 deps: deps.map(function(dep){
                   return absolute(dep,id);
                 }),
+                resolved: false,
                 exports: null
             };
             require(id);
         } else {
-            map[id] = factory;
+            map[id] = {
+                factory : null,
+                resolved : true,
+                exports : factory
+            };
         }
     };
     require = globals.require = function(id) {
@@ -49,14 +54,15 @@
             throw new Error('Module ' + id + ' has not been defined');
         }
         var module = map[id];
-        if (!module.exports) {
+        if (!module.resolved) {
             var args = [];
 
             module.deps.forEach(function(dep){
                 args.push(require(dep));
             })
 
-            module.exports = module.factory.apply(window, args);
+            module.exports = module.factory.apply(globals, args) || null;
+            module.resolved = true;
         }
         return module.exports;
     };
@@ -69,21 +75,21 @@
   factory(define,require);
 
   if (!isAmd) {
-    var skylarkjs = require("skylark-spa/main");
+    var skylarkjs = require("skylark-langx/skylark");
 
     if (isCmd) {
-      exports = skylarkjs;
+      module.exports = skylarkjs;
     } else {
-      globals.skylarkjs = skylarkjs;
+      globals.skylarkjs  = skylarkjs;
     }
   }
 
 })(function(define,require) {
 
-define('skylark-spa/spa',[
+define('skylark-fw-spa/spa',[
     "skylark-langx/skylark",
     "skylark-langx/langx",
-    "skylark-router/router"
+    "skylark-fw-router/router"
 ], function(skylark, langx, router) {
     var Deferred = langx.Deferred;
 
@@ -422,14 +428,15 @@ define('skylark-spa/spa',[
     return skylark.spa = spa;
 });
 
-define('skylark-spa/main',[
+define('skylark-fw-spa/main',[
     "skylark-langx/skylark",
     "./spa"
 ], function(skylark) {
     return skylark;
 });
 
-define('skylark-spa', ['skylark-spa/main'], function (main) { return main; });
+define('skylark-fw-spa', ['skylark-fw-spa/main'], function (main) { return main; });
 
 
 },this);
+//# sourceMappingURL=sourcemaps/skylark-fw-spa.js.map

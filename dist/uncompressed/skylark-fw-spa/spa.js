@@ -1,7 +1,7 @@
 define([
     "skylark-langx/skylark",
     "skylark-langx/langx",
-    "skylark-router/router"
+    "skylark-fw-router/router"
 ], function(skylark, langx, router) {
     var Deferred = langx.Deferred;
 
