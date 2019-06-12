@@ -1,49 +1,49 @@
-# skylark-spa
+# skylark-ajaxfy-spa
 An Elegant HTML5 Single Page Application Framework  
-![アーキテクチャ](https://github.com/skylarkjs/skylark-spa/blob/master/docs/architecure.jpg "アーキテクチャ")
+![アーキテクチャ](https://github.com/skylark-ajaxfy/skylark-ajaxfy-spa/blob/master/docs/architecure.jpg "アーキテクチャ")
 
 ## Features
 
 - Easy to manage  
 The application functions are managed by the configuration file and the framework using controller pattern , unit test and division of labor development become easier.
-- [skylark-router](https://github.com/skylarkjs/skylark-router) is built-in. [skylark-router's features](https://github.com/skylarkjs/skylark-router/blob/master/README.md#features)
+- [skylark-router](https://github.com/skylark-ajaxfy/skylark-ajaxfy-router) is built-in. [skylark-router's features](https://github.com/skylark-ajaxfy/skylark-ajaxfy-router/blob/master/README.md#features)
 - Lightweight, even if allinone is only 17k(minified),6k(gzip)
 
 ## Dependences
 | Project | Description |
 |---------|-------------|
 | [skylark-langx](https://github.com/skylarkjs/skylark-langx)  | Javascript language extension library |
-| [skylark-router](https://github.com/skylarkjs/skylark-router)   | Front-end routing framework |
+| [skylark-ajaxfy-router](https://github.com/skylark-ajaxfy/skylark-ajaxfy-router)   | Front-end routing framework |
 
 ##  Different builds
 |  | build | Description |
 |---------|--------|-------------|
-| full | skylark-spa-all.js | included skylark-langx and skylark-router |
-| only sap | skylark-spa.js | not included skylark-langx and skylark-router|
-| full （development） | uncompressed/skylark-spa-all.js | included skylark-langx and skylark-router  |
-| only router （development）| uncompressed/skylark-spa.js | not included skylark-langx and skylark-router|
+| full | skylark-ajaxfy-spa-all.js | included skylark-langx and skylark-router |
+| only sap | skylark-ajaxfy-spa.js | not included skylark-langx and skylark-router|
+| full （development） | uncompressed/skylark-ajaxfy-spa-all.js | included skylark-langx and skylark-router  |
+| only router （development）| uncompressed/skylark-ajaxfy-spa.js | not included skylark-langx and skylark-router|
 
 ## Installation
-There are multiple ways to install the skylark-spa library. 
+There are multiple ways to install the skylark-ajaxfy-spa library. 
 - cdn  
-http://registry.skylarkjs.org/packages/skylark-router/v0.9.0/skylark-spa-all.js    or  
-http://registry.skylarkjs.org/packages/skylark-router/v0.9.0/uncompressed/skylark-spa-all.js 
+http://registry.skylarkjs.org/packages/skylark-router/v0.9.0/skylark-ajaxfy-spa-all.js    or  
+http://registry.skylarkjs.org/packages/skylark-router/v0.9.0/uncompressed/skylark-ajaxfy-spa-all.js 
 - npm  
-npm install skylark-spa --save
+npm install skylark-ajaxfy-spa --save
 - bower  
-bower install skylark-spa
+bower install skylark-ajaxfy-spa
 
 ## Examples
 Please access the following site for the execution of each example program under the "/examples" directory.
 
-- http://examples.skylarkjs.org/skylark-spa/
+- http://examples.skylarkjs.org/skylark-ajaxfy-spa/
 
 ## Document
 
-1. [Overview](https://github.com/skylarkjs/skylark-spa/blob/master/docs/Overview.md)
-1. [Architecure](https://github.com/skylarkjs/skylark-spa/blob/master/docs/Architecure.md)
-1. [Guide](https://github.com/skylarkjs/skylark-spa/blob/master/docs/Guide.md)
-1. [API](https://github.com/skylarkjs/skylark-spa/blob/master/docs/API.md)
+1. [Overview](https://github.com/skylarkjs/skylark-ajaxfy-spa/blob/master/docs/Overview.md)
+1. [Architecure](https://github.com/skylarkjs/skylark-ajaxfy-spa/blob/master/docs/Architecure.md)
+1. [Guide](https://github.com/skylarkjs/skylark-ajaxfy-spa/blob/master/docs/Guide.md)
+1. [API](https://github.com/skylarkjs/skylark-ajaxfy-spa/blob/master/docs/API.md)
 
 ## Building skylark-router
 

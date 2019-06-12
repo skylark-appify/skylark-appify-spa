@@ -1,5 +1,5 @@
 /**
- * skylark-fw-spa - An Elegant  HTML5 Single Page Application Framework.
+ * skylark-ajaxfy-spa - An Elegant  HTML5 Single Page Application Framework.
  * @author Hudaokeji Co.,Ltd
  * @version v0.9.5-beta
  * @link www.skylarkjs.org
@@ -3731,24 +3731,17 @@ define('skylark-langx/langx',[
 
     return skylark.langx = langx;
 });
-define('skylark-fw-router/router',[
-    "skylark-langx/skylark",
-    "skylark-langx/langx"
-], function(skylark, langx) {
+define('skylark-ajaxfy-router/routing',[
+	"skylark-langx/skylark"
+],function(skylark){
 
-    var _curCtx,
-        _prevCtx,
-        _baseUrl,
-        _homePath,
-        _routes = {},
-        _cache = {},
-        _hub = new langx.Evented();
+	return skylark.attach("fw.routing",{});	
+});
 
-    function createEvent(type,props) {
-        var e = new CustomEvent(type,props);
-        return langx.safeMixin(e, props);
-    }
-
+define('skylark-ajaxfy-router/Route',[
+	"skylark-langx/langx",
+	"./routing"
+],function(langx,routing){
     var Route = langx.Evented.inherit({
         klassName: "Route",
         init: function(name, setting) {
@@ -3878,6 +3871,27 @@ define('skylark-fw-router/router',[
             return true;
         },
     });
+
+	return routing.Route = Route;	
+});
+define('skylark-ajaxfy-router/router',[
+    "skylark-langx/langx",
+    "./routing",
+    "./Route"
+],function(langx,routing,Route){
+    var _curCtx,
+        _prevCtx,
+        _baseUrl,
+        _homePath,
+        _routes = {},
+        _cache = {},
+        _hub = new langx.Evented();
+
+    function createEvent(type,props) {
+        var e = new CustomEvent(type,props);
+        return langx.safeMixin(e, props);
+    }
+
 
     function current() {
         return _curCtx;
@@ -4169,10 +4183,10 @@ define('skylark-fw-router/router',[
     return skylark.router = router;
 });
 
-define('skylark-fw-spa/spa',[
+define('skylark-ajaxfy-spa/spa',[
     "skylark-langx/skylark",
     "skylark-langx/langx",
-    "skylark-fw-router/router"
+    "skylark-ajaxfy-router/router"
 ], function(skylark, langx, router) {
     var Deferred = langx.Deferred;
 
@@ -4511,14 +4525,14 @@ define('skylark-fw-spa/spa',[
     return skylark.spa = spa;
 });
 
-define('skylark-fw-spa/main',[
+define('skylark-ajaxfy-spa/main',[
     "skylark-langx/skylark",
     "./spa"
 ], function(skylark) {
     return skylark;
 });
 
-define('skylark-fw-spa', ['skylark-fw-spa/main'], function (main) { return main; });
+define('skylark-ajaxfy-spa', ['skylark-ajaxfy-spa/main'], function (main) { return main; });
 
 
 },this);
