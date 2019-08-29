@@ -89,14 +89,16 @@
 define('skylark-ajaxfy-spa/spa',[
     "skylark-langx/skylark",
     "skylark-langx/langx",
-    "skylark-ajaxfy-router/router"
-], function(skylark, langx, router) {
+    "skylark-ajaxfy-routers"
+], function(skylark, langx, routers) {
     var Deferred = langx.Deferred;
 
     function createEvent(type, props) {
         var e = new CustomEvent(type, props);
         return langx.safeMixin(e, props);
     }
+
+    var router = new routers.Router();
 
     var Route = router.Route = router.Route.inherit({
         klassName: "SpaRoute",
@@ -176,6 +178,7 @@ define('skylark-ajaxfy-spa/spa',[
             }
         }
     });
+
 
     var RouteController = langx.Evented.inherit({
         klassName: "SpaRouteController",
@@ -425,7 +428,7 @@ define('skylark-ajaxfy-spa/spa',[
 
     });
 
-    return skylark.spa = spa;
+    return skylark.attach("ajaxfy.spa",spa);
 });
 
 define('skylark-ajaxfy-spa/main',[

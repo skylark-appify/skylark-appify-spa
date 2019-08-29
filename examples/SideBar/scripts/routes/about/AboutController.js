@@ -1,7 +1,7 @@
 define([
-	"skylark-spa/spa",
+	"skylark-ajaxfy-spa/spa",
     "skylark-langx/langx",
-	"skylark-utils/query",
+	"skylark-utils-dom/query",
 	"text!./templates/about.html"
 ],function(spa,langx,$,tpl){
 

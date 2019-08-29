@@ -1,8 +1,8 @@
 define([
-    "skylark-spa/spa",
+    "skylark-ajaxfy-spa/spa",
     "skylark-langx/langx",
-    "skylark-utils/query",
-	"text!./templates/home.html"
+    "skylark-utils-dom/query",
+    "text!./templates/home.html"
 ],function(spa,langx,$,tpl){
 
 	return spa.RouteController.inherit({

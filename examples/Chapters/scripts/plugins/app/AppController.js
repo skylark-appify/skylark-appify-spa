@@ -1,9 +1,9 @@
 define([
     "skylarkjs"
 ], function(skylarkjs) {
-    var spa = skylarkjs.spa,
-    	noder = skylarkjs.noder,
-        $ = skylarkjs.query;
+    var spa = skylarkjs.ajaxfy.spa,
+    	noder = skylarkjs.dom.noder,
+        $ = skylarkjs.dom.query;
 
     return spa.PluginController.inherit({
         klassName: "AppController",

@@ -23,8 +23,11 @@
   "license": "MIT",
   "bugs": "https://github.com/skylark-ajaxfy/skylark-ajaxfy-spa/issues",
   "dependencies": {
-    "skylark-langx": "git+https://github.com/skylarklangx/skylark-langx.git#master",
-    "skylark-ajaxfy-router": "git+https://github.com/skylark-ajaxfy/skylark-ajaxfy-router.git#master"
+    "skylark-ajaxfy-routers": "git+https://github.com/skylark-ajaxfy/skylark-ajaxfy-routers.git#master",
+    "skylark-langx": "git+https://github.com/skylarklangx/skylark-langx.git#master"
+  },
+  "devDependencies": {
+    "skylark-utils-dom": "git+https://github.com/skylarkutils/skylark-utils-dom.git#master"
   },
   "engines": {
     "node": ">=0.8.0"

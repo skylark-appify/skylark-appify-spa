@@ -1,9 +1,10 @@
 define([
     "skylarkjs",
 	"text!./templates/home.html"
-],function(skylark,tpl){
-    var spa = skylark.spa,
-        $ = skylark.query;
+],function(skylarkjs,tpl){
+    var spa = skylarkjs.ajaxfy.spa,
+        noder = skylarkjs.dom.noder,
+        $ = skylarkjs.dom.query;
 
 	return spa.RouteController.inherit({
         klassName: "HomeController",
