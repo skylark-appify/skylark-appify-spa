@@ -336,6 +336,9 @@ define([
         "PluginController": PluginController,
 
         "Route": Route,
+
+        "router" : router,
+        
         "RouteController": RouteController
 
     });

@@ -424,6 +424,9 @@ define('skylark-ajaxfy-spa/spa',[
         "PluginController": PluginController,
 
         "Route": Route,
+
+        "router" : router,
+        
         "RouteController": RouteController
 
     });
