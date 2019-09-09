@@ -19,7 +19,7 @@ The application functions are managed by the configuration file and the framewor
 |  | build | Description |
 |---------|--------|-------------|
 | full | skylark-ajaxfy-spa-all.js | included skylark-langx and skylark-ajaxfy-router |
-| only sap | skylark-ajaxfy-spa.js | not included skylark-langx and skylark-ajaxfy-router|
+| only spa | skylark-ajaxfy-spa.js | not included skylark-langx and skylark-ajaxfy-router|
 | full （development） | uncompressed/skylark-ajaxfy-spa-all.js | included skylark-langx and skylark-ajaxfy-router  |
 | only router （development）| uncompressed/skylark-ajaxfy-spa.js | not included skylark-langx and skylark-ajaxfy-router|
 
@@ -40,7 +40,7 @@ Please access the following site for the execution of each example program under
 1. [Guide](https://github.com/skylarkjs/skylark-ajaxfy-spa/blob/master/docs/Guide.md)
 1. [API](https://github.com/skylarkjs/skylark-ajaxfy-spa/blob/master/docs/API.md)
 
-## Building skylark-ajaxfy-router
+## Building skylark-ajaxfy-spa
 
 - Ensure that Node.js is installed.
 - Run npm gulp -g to ensure gulp is installed.
