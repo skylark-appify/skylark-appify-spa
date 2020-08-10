@@ -1,7 +1,7 @@
 /**
- * skylark-ajaxfy-spa - An Elegant  HTML5 Single Page Application Framework.
+ * skylark-ajaxify-spa - An Elegant  HTML5 Single Page Application Framework.
  * @author Hudaokeji Co.,Ltd
- * @version v0.9.5-beta
+ * @version v0.9.5
  * @link www.skylarkjs.org
  * @license MIT
  */
@@ -75,7 +75,7 @@
   factory(define,require);
 
   if (!isAmd) {
-    var skylarkjs = require("skylark-langx/skylark");
+    var skylarkjs = require("skylark-langx-ns");
 
     if (isCmd) {
       module.exports = skylarkjs;
@@ -131,7 +131,8 @@ define('skylark-langx/skylark',[
 define('skylark-langx-types/types',[
     "skylark-langx-ns"
 ],function(skylark){
-    var toString = {}.toString;
+    var nativeIsArray = Array.isArray, 
+        toString = {}.toString;
     
     var type = (function() {
         var class2type = {};
@@ -147,9 +148,10 @@ define('skylark-langx-types/types',[
         };
     })();
 
-    function isArray(object) {
+ 
+    var  isArray = nativeIsArray || function(obj) {
         return object && object.constructor === Array;
-    }
+    };
 
 
     /**
@@ -192,7 +194,8 @@ define('skylark-langx-types/types',[
      * // => false
      */
     function isBoolean(obj) {
-        return typeof(obj) === "boolean";
+       return obj === true || obj === false || toString.call(obj) === '[object Boolean]';
+       //return typeof(obj) === "boolean";
     }
 
     function isDefined(obj) {
@@ -202,6 +205,11 @@ define('skylark-langx-types/types',[
     function isDocument(obj) {
         return obj != null && obj.nodeType == obj.DOCUMENT_NODE;
     }
+
+   // Is a given value a DOM element?
+    function isElement(obj) {
+        return !!(obj && obj.nodeType === 1);
+    }   
 
     function isEmptyObject(obj) {
         var name;
@@ -231,6 +239,8 @@ define('skylark-langx-types/types',[
         return type(value) == "function";
     }
 
+
+
     function isHtmlNode(obj) {
         return obj && obj.nodeType; // obj instanceof Node; //Consider the elements in IFRAME
     }
@@ -254,8 +264,8 @@ define('skylark-langx-types/types',[
         }
     }
 
-    function isNull(value) {
-      return type(value) === "null";
+    function isNull(obj) {
+        return obj === null;
     }
 
     function isNumber(obj) {
@@ -263,7 +273,9 @@ define('skylark-langx-types/types',[
     }
 
     function isObject(obj) {
-        return type(obj) == "object";
+        var type = typeof obj;
+        return type === 'function' || type === 'object' && !!obj;        
+        //return type(obj) == "object";
     }
 
     function isPlainObject(obj) {
@@ -306,8 +318,9 @@ define('skylark-langx-types/types',[
         (isObjectLike(value) && objectToString.call(value) == symbolTag);
     }
 
-    function isUndefined(value) {
-      return value === undefined
+    // Is a given variable undefined?
+    function isUndefined(obj) {
+        return obj === void 0;
     }
 
     return skylark.attach("langx.types",{
@@ -322,6 +335,8 @@ define('skylark-langx-types/types',[
 
         isDocument: isDocument,
 
+        isElement,
+
         isEmpty : isEmptyObject,
 
         isEmptyObject: isEmptyObject,
@@ -330,7 +345,12 @@ define('skylark-langx-types/types',[
 
         isHtmlNode: isHtmlNode,
 
+        isNaN : function (obj) {
+            return isNaN(obj);
+        },
+
         isNull: isNull,
+
 
         isNumber: isNumber,
 
@@ -665,7 +685,7 @@ define('skylark-langx-objects/objects',[
         return keys;
     }
 
-    function each(obj, callback) {
+    function each(obj, callback,isForEach) {
         var length, key, i, undef, value;
 
         if (obj) {
@@ -676,7 +696,7 @@ define('skylark-langx-objects/objects',[
                 for (key in obj) {
                     if (obj.hasOwnProperty(key)) {
                         value = obj[key];
-                        if (callback.call(value, key, value) === false) {
+                        if ((isForEach ? callback.call(value, value, key) : callback.call(value, key, value) ) === false) {
                             break;
                         }
                     }
@@ -685,7 +705,7 @@ define('skylark-langx-objects/objects',[
                 // Loop array items
                 for (i = 0; i < length; i++) {
                     value = obj[i];
-                    if (callback.call(value, i, value) === false) {
+                    if ((isForEach ? callback.call(value, value, i) : callback.call(value, i, value) )=== false) {
                         break;
                     }
                 }
@@ -804,13 +824,15 @@ define('skylark-langx-objects/objects',[
             if (safe && target[key] !== undefined) {
                 continue;
             }
-            if (deep && (isPlainObject(source[key]) || isArray(source[key]))) {
-                if (isPlainObject(source[key]) && !isPlainObject(target[key])) {
+            // if (deep && (isPlainObject(source[key]) || isArray(source[key]))) {
+            //    if (isPlainObject(source[key]) && !isPlainObject(target[key])) {
+            if (deep && isPlainObject(source[key])) {
+                if (!isPlainObject(target[key])) {
                     target[key] = {};
                 }
-                if (isArray(source[key]) && !isArray(target[key])) {
-                    target[key] = [];
-                }
+                //if (isArray(source[key]) && !isArray(target[key])) {
+                //    target[key] = [];
+                //}
                 _mixin(target[key], source[key], deep, safe);
             } else if (source[key] !== undefined) {
                 target[key] = source[key]
@@ -1008,8 +1030,9 @@ define('skylark-langx-arrays/arrays',[
   "skylark-langx-types",
   "skylark-langx-objects"
 ],function(skylark,types,objects){
-	var filter = Array.prototype.filter,
-		isArrayLike = types.isArrayLike;
+  var filter = Array.prototype.filter,
+      find = Array.prototype.find,
+    isArrayLike = types.isArrayLike;
 
     /**
      * The base implementation of `_.findIndex` and `_.findLastIndex` without
@@ -1192,6 +1215,10 @@ define('skylark-langx-arrays/arrays',[
         })
     }
 
+    function find2(array,func) {
+      return find.call(array,func);
+    }
+
     return skylark.attach("langx.arrays",{
         baseFindIndex: baseFindIndex,
 
@@ -1208,6 +1235,8 @@ define('skylark-langx-arrays/arrays',[
         },
 
         filter : filter2,
+
+        find : find2,
         
         flatten: flatten,
 
@@ -2054,76 +2083,133 @@ define('skylark-langx-funcs/funcs',[
         };
     })();
 
-  var templateSettings = {
-    evaluate: /<%([\s\S]+?)%>/g,
-    interpolate: /<%=([\s\S]+?)%>/g,
-    escape: /<%-([\s\S]+?)%>/g
-  };
 
-
-  function template(text, settings, oldSettings) {
-    if (!settings && oldSettings) settings = oldSettings;
-    settings = objects.defaults({}, settings,templateSettings);
-
-    // Combine delimiters into one regular expression via alternation.
-    var matcher = RegExp([
-      (settings.escape || noMatch).source,
-      (settings.interpolate || noMatch).source,
-      (settings.evaluate || noMatch).source
-    ].join('|') + '|$', 'g');
-
-    // Compile the template source, escaping string literals appropriately.
-    var index = 0;
-    var source = "__p+='";
-    text.replace(matcher, function(match, escape, interpolate, evaluate, offset) {
-      source += text.slice(index, offset).replace(escapeRegExp, escapeChar);
-      index = offset + match.length;
-
-      if (escape) {
-        source += "'+\n((__t=(" + escape + "))==null?'':_.escape(__t))+\n'";
-      } else if (interpolate) {
-        source += "'+\n((__t=(" + interpolate + "))==null?'':__t)+\n'";
-      } else if (evaluate) {
-        source += "';\n" + evaluate + "\n__p+='";
-      }
-
-      // Adobe VMs need the match returned to produce the correct offset.
-      return match;
-    });
-    source += "';\n";
-
-    // If a variable is not specified, place data values in local scope.
-    if (!settings.variable) source = 'with(obj||{}){\n' + source + '}\n';
-
-    source = "var __t,__p='',__j=Array.prototype.join," +
-      "print=function(){__p+=__j.call(arguments,'');};\n" +
-      source + 'return __p;\n';
-
-    var render;
-    try {
-      render = new Function(settings.variable || 'obj', '_', source);
-    } catch (e) {
-      e.source = source;
-      throw e;
-    }
-
-    var template = function(data) {
-      return render.call(this, data, _);
+    // By default, Underscore uses ERB-style template delimiters, change the
+    // following template settings to use alternative delimiters.
+    var templateSettings = {
+        evaluate: /<%([\s\S]+?)%>/g,
+        interpolate: /<%=([\s\S]+?)%>/g,
+        escape: /<%-([\s\S]+?)%>/g
     };
 
-    // Provide the compiled source as a convenience for precompilation.
-    var argument = settings.variable || 'obj';
-    template.source = 'function(' + argument + '){\n' + source + '}';
+    // When customizing `templateSettings`, if you don't want to define an
+    // interpolation, evaluation or escaping regex, we need one that is
+    // guaranteed not to match.
+    var noMatch = /(.)^/;
 
-    return template;
-  };
+
+    // Certain characters need to be escaped so that they can be put into a
+    // string literal.
+    var escapes = {
+      "'":      "'",
+      '\\':     '\\',
+      '\r':     'r',
+      '\n':     'n',
+      '\t':     't',
+      '\u2028': 'u2028',
+      '\u2029': 'u2029'
+    };
+
+    var escaper = /\\|'|\r|\n|\t|\u2028|\u2029/g;
+
+
+    function template(text, data, settings) {
+        var render;
+        settings = objects.defaults({}, settings,templateSettings);
+
+        // Combine delimiters into one regular expression via alternation.
+        var matcher = RegExp([
+          (settings.escape || noMatch).source,
+          (settings.interpolate || noMatch).source,
+          (settings.evaluate || noMatch).source
+        ].join('|') + '|$', 'g');
+
+        // Compile the template source, escaping string literals appropriately.
+        var index = 0;
+        var source = "__p+='";
+        text.replace(matcher, function(match, escape, interpolate, evaluate, offset) {
+          source += text.slice(index, offset)
+              .replace(escaper, function(match) { return '\\' + escapes[match]; });
+
+          if (escape) {
+            source += "'+\n((__t=(" + escape + "))==null?'':_.escape(__t))+\n'";
+          }
+          if (interpolate) {
+            source += "'+\n((__t=(" + interpolate + "))==null?'':__t)+\n'";
+          }
+          if (evaluate) {
+            source += "';\n" + evaluate + "\n__p+='";
+          }
+          index = offset + match.length;
+          return match;
+        });
+        source += "';\n";
+
+        // If a variable is not specified, place data values in local scope.
+        if (!settings.variable) source = 'with(obj||{}){\n' + source + '}\n';
+
+        source = "var __t,__p='',__j=Array.prototype.join," +
+          "print=function(){__p+=__j.call(arguments,'');};\n" +
+          source + 'return __p;\n';
+
+        try {
+          render = new Function(settings.variable || 'obj', '_', source);
+        } catch (e) {
+          e.source = source;
+          throw e;
+        }
+
+        if (data) {
+          return render(data,this)
+        }
+        var template = proxy(function(data) {
+          return render.call(this, data,this);
+        },this);
+
+        // Provide the compiled source as a convenience for precompilation.
+        var argument = settings.variable || 'obj';
+        template.source = 'function(' + argument + '){\n' + source + '}';
+
+        return template;
+    }
+
+
+    /**
+     * Creates a function that negates the result of the predicate `func`. The
+     * `func` predicate is invoked with the `this` binding and arguments of the
+     * created function.
+     * @category Function
+     * @param {Function} predicate The predicate to negate.
+     * @returns {Function} Returns the new negated function.
+     * @example
+     *
+     * function isEven(n) {
+     *   return n % 2 == 0
+     * }
+     *
+     * filter([1, 2, 3, 4, 5, 6], negate(isEven))
+     * // => [1, 3, 5]
+     */
+    function negate(predicate) {
+      if (typeof predicate !== 'function') {
+        throw new TypeError('Expected a function')
+      }
+      return function(...args) {
+        return !predicate.apply(this, args)
+      }
+    }
+
 
     return skylark.attach("langx.funcs",{
+        bind : proxy,
+        
         debounce: debounce,
 
         delegate: delegate,
 
         defer: defer,
+
+        negate: negate,
 
         noop : noop,
 
@@ -2154,9 +2240,6 @@ define('skylark-langx-async/Deferred',[
     "skylark-langx-objects"
 ],function(arrays,funcs,objects){
     "use strict";
-    
-    var  PGLISTENERS = Symbol ? Symbol() : '__pglisteners',
-         PGNOTIFIES = Symbol ? Symbol() : '__pgnotifies';
 
     var slice = Array.prototype.slice,
         proxy = funcs.proxy,
@@ -2188,15 +2271,15 @@ define('skylark-langx-async/Deferred',[
 
     var Deferred = function() {
         var self = this,
-            p = this.promise = new Promise(function(resolve, reject) {
+            p = this.promise = makePromise2(new Promise(function(resolve, reject) {
                 self._resolve = resolve;
                 self._reject = reject;
-            });
+            }));
 
-        wrapPromise(p,self);
+        //wrapPromise(p,self);
 
-        this[PGLISTENERS] = [];
-        this[PGNOTIFIES] = [];
+        //this[PGLISTENERS] = [];
+        //this[PGNOTIFIES] = [];
 
         //this.resolve = Deferred.prototype.resolve.bind(this);
         //this.reject = Deferred.prototype.reject.bind(this);
@@ -2204,52 +2287,97 @@ define('skylark-langx-async/Deferred',[
 
     };
 
-    function wrapPromise(p,d) {
-        var   added = {
-                state : function() {
-                    if (d.isResolved()) {
-                        return 'resolved';
+   
+    function makePromise2(promise) {
+        // Don't modify any promise that has been already modified.
+        if (promise.isResolved) return promise;
+
+        // Set initial state
+        var isPending = true;
+        var isRejected = false;
+        var isResolved = false;
+
+        // Observe the promise, saving the fulfillment in a closure scope.
+        var result = promise.then(
+            function(v) {
+                isResolved = true;
+                isPending = false;
+                return v; 
+            }, 
+            function(e) {
+                isRejected = true;
+                isPending = false;
+                throw e; 
+            }
+        );
+
+        result.isResolved = function() { return isResolved; };
+        result.isPending = function() { return isPending; };
+        result.isRejected = function() { return isRejected; };
+
+        result.state = function() {
+            if (isResolved) {
+                return 'resolved';
+            }
+            if (isRejected) {
+                return 'rejected';
+            }
+            return 'pending';
+        };
+
+        var notified = [],
+            listeners = [];
+
+          
+        result.then = function(onResolved,onRejected,onProgress) {
+            if (onProgress) {
+                this.progress(onProgress);
+            }
+            return makePromise2(Promise.prototype.then.call(this,
+                onResolved && function(args) {
+                    if (args && args.__ctx__ !== undefined) {
+                        return onResolved.apply(args.__ctx__,args);
+                    } else {
+                        return onResolved(args);
                     }
-                    if (d.isRejected()) {
-                        return 'rejected';
-                    }
-                    return 'pending';
                 },
-                then : function(onResolved,onRejected,onProgress) {
-                    if (onProgress) {
-                        this.progress(onProgress);
+                onRejected && function(args){
+                    if (args && args.__ctx__ !== undefined) {
+                        return onRejected.apply(args.__ctx__,args);
+                    } else {
+                        return onRejected(args);
                     }
-                    return wrapPromise(Promise.prototype.then.call(this,
-                            onResolved && function(args) {
-                                if (args && args.__ctx__ !== undefined) {
-                                    return onResolved.apply(args.__ctx__,args);
-                                } else {
-                                    return onResolved(args);
-                                }
-                            },
-                            onRejected && function(args){
-                                if (args && args.__ctx__ !== undefined) {
-                                    return onRejected.apply(args.__ctx__,args);
-                                } else {
-                                    return onRejected(args);
-                                }
-                            }));
-                },
-                progress : function(handler) {
-                    d[PGNOTIFIES].forEach(function (value) {
-                        handler(value);
-                    });
-                    d[PGLISTENERS].push(handler);
-                    return this;
                 }
+            ));
+        };
 
-            };
+        result.progress = function(handler) {
+            notified.forEach(function (value) {
+                handler(value);
+            });
+            listeners.push(handler);
+            return this;
+        };
 
-        added.pipe = added.then;
-        return mixin(p,added);
+        result.pipe = result.then;
 
+        result.notify = function(value) {
+            try {
+                notified.push(value);
+
+                return listeners.forEach(function (listener) {
+                    return listener(value);
+                });
+            } catch (error) {
+            this.reject(error);
+            }
+            return this;
+        };
+
+        return result;
     }
 
+ 
     Deferred.prototype.resolve = function(value) {
         var args = slice.call(arguments);
         return this.resolveWith(null,args);
@@ -2264,15 +2392,8 @@ define('skylark-langx-async/Deferred',[
     };
 
     Deferred.prototype.notify = function(value) {
-        try {
-            this[PGNOTIFIES].push(value);
-
-            return this[PGLISTENERS].forEach(function (listener) {
-                return listener(value);
-            });
-        } catch (error) {
-          this.reject(error);
-        }
+        var p = result(this,"promise");
+        p.notify(value);
         return this;
     };
 
@@ -2290,11 +2411,18 @@ define('skylark-langx-async/Deferred',[
     };
 
     Deferred.prototype.isResolved = function() {
-        return !!this._resolved;
+        var p = result(this,"promise");
+        return p.isResolved();
     };
 
     Deferred.prototype.isRejected = function() {
-        return !!this._rejected;
+        var p = result(this,"promise");
+        return p.isRejected();
+    };
+
+    Deferred.prototype.state = function() {
+        var p = result(this,"promise");
+        return p.state();
     };
 
     Deferred.prototype.then = function(callback, errback, progback) {
@@ -2313,14 +2441,22 @@ define('skylark-langx-async/Deferred',[
     };
 
 
+    Deferred.prototype.always  = function() {
+        var p = result(this,"promise");
+        p.always.apply(p,arguments);
+        return this;
+    };
+
     Deferred.prototype.done  = function() {
         var p = result(this,"promise");
-        return p.done.apply(p,arguments);
+        p.done.apply(p,arguments);
+        return this;
     };
 
     Deferred.prototype.fail = function(errback) {
         var p = result(this,"promise");
-        return p.fail(errback);
+        p.fail(errback);
+        return this;
     };
 
 
@@ -2332,7 +2468,7 @@ define('skylark-langx-async/Deferred',[
     };
 
     Deferred.first = function(array) {
-        return wrapPromise(Promise.race(array));
+        return makePromise2(Promise.race(array));
     };
 
 
@@ -2371,6 +2507,15 @@ define('skylark-langx-async/Deferred',[
     };
 
     Deferred.immediate = Deferred.resolve;
+
+
+    Deferred.promise = function(callback) {
+        var d = new Deferred();
+
+        callback(d.resolve.bind(d),d.reject.bind(d),d.progress.bind(d));
+
+        return d.promise;
+    };
 
     return Deferred;
 });
@@ -2444,6 +2589,108 @@ define('skylark-langx/async',[
     "skylark-langx-async"
 ],function(async){
     return async;
+});
+define('skylark-langx-binary/binary',[
+  "skylark-langx-ns/ns",
+],function(skylark){
+	"use strict";
+
+
+	/**
+	 * Create arraybuffer from binary string
+	 *
+	 * @method fromBinaryString
+	 * @param {String} str
+	 * @return {Arraybuffer} data
+	 */
+	function fromBinaryString(str) {
+		var length = str.length;
+		var arraybuffer = new ArrayBuffer(length);
+		var view = new Uint8Array(arraybuffer);
+
+		for(var i = 0; i < length; i++)
+		{
+			view[i] = str.charCodeAt(i);
+		}
+
+		return arraybuffer;
+	}
+
+	/**
+	 * Create arraybuffer from base64 string
+	 *
+	 * @method fromBase64
+	 * @param {String} base64
+	 * @return {Arraybuffer} data
+	 */
+	function fromBase64(str){
+		var encoding = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+		var length = str.length / 4 * 3;
+		var arraybuffer = new ArrayBuffer(length);
+		var view = new Uint8Array(arraybuffer);
+
+		var a, b, c, d;
+
+		for(var i = 0, j = 0; i < length; i += 3)
+		{
+			a = encoding.indexOf(str.charAt(j++));
+			b = encoding.indexOf(str.charAt(j++));
+			c = encoding.indexOf(str.charAt(j++));
+			d = encoding.indexOf(str.charAt(j++));
+
+			view[i] = (a << 2) | (b >> 4);
+			if(c !== 64)
+			{
+				view[i+1] = ((b & 15) << 4) | (c >> 2);
+			}
+			if(d !== 64)
+			{
+				view[i+2] = ((c & 3) << 6) | d;
+			}
+		}
+
+		return arraybuffer;
+	}
+
+	/**
+	 * Create arraybuffer from Nodejs buffer
+	 *
+	 * @method fromBuffer
+	 * @param {Buffer} buffer
+	 * @return {Arraybuffer} data
+	 */
+	function fromBuffer(buffer)	{
+		var array = new ArrayBuffer(buffer.length);
+		var view = new Uint8Array(array);
+
+		for(var i = 0; i < buffer.length; i++)
+		{
+			view[i] = buffer[i];
+		}
+
+		return array;
+
+		//Faster but the results is failing the "instanceof ArrayBuffer" test
+		//return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+	};
+
+	return skylark.attach("langx.binary",{
+		fromBase64,
+		fromBinaryString,
+		fromBuffer
+	});
+});
+define('skylark-langx-binary/main',[
+	"./binary"
+],function(binary){
+	return binary;
+});
+define('skylark-langx-binary', ['skylark-langx-binary/main'], function (main) { return main; });
+
+define('skylark-langx/binary',[
+	"skylark-langx-binary"
+],function(binary){
+  return binary;
 });
 define('skylark-langx-datetimes/datetimes',[
     "skylark-langx-ns"
@@ -2527,305 +2774,10 @@ define('skylark-langx/Deferred',[
 ],function(Deferred){
     return Deferred;
 });
-define('skylark-langx-emitter/Evented',[
-  "skylark-langx-ns/ns",
-  "skylark-langx-types",
-  "skylark-langx-objects",
-  "skylark-langx-arrays",
-  "skylark-langx-klass"
-],function(skylark,types,objects,arrays,klass){
-    var slice = Array.prototype.slice,
-        compact = arrays.compact,
-        isDefined = types.isDefined,
-        isPlainObject = types.isPlainObject,
-        isFunction = types.isFunction,
-        isString = types.isString,
-        isEmptyObject = types.isEmptyObject,
-        mixin = objects.mixin;
-
-    function parse(event) {
-        var segs = ("" + event).split(".");
-        return {
-            name: segs[0],
-            ns: segs.slice(1).join(" ")
-        };
-    }
-
-    var Evented = klass({
-        on: function(events, selector, data, callback, ctx, /*used internally*/ one) {
-            var self = this,
-                _hub = this._hub || (this._hub = {});
-
-            if (isPlainObject(events)) {
-                ctx = callback;
-                each(events, function(type, fn) {
-                    self.on(type, selector, data, fn, ctx, one);
-                });
-                return this;
-            }
-
-            if (!isString(selector) && !isFunction(callback)) {
-                ctx = callback;
-                callback = data;
-                data = selector;
-                selector = undefined;
-            }
-
-            if (isFunction(data)) {
-                ctx = callback;
-                callback = data;
-                data = null;
-            }
-
-            if (isString(events)) {
-                events = events.split(/\s/)
-            }
-
-            events.forEach(function(event) {
-                var parsed = parse(event),
-                    name = parsed.name,
-                    ns = parsed.ns;
-
-                (_hub[name] || (_hub[name] = [])).push({
-                    fn: callback,
-                    selector: selector,
-                    data: data,
-                    ctx: ctx,
-                    ns : ns,
-                    one: one
-                });
-            });
-
-            return this;
-        },
-
-        one: function(events, selector, data, callback, ctx) {
-            return this.on(events, selector, data, callback, ctx, 1);
-        },
-
-        trigger: function(e /*,argument list*/ ) {
-            if (!this._hub) {
-                return this;
-            }
-
-            var self = this;
-
-            if (isString(e)) {
-                e = new CustomEvent(e);
-            }
-
-            Object.defineProperty(e,"target",{
-                value : this
-            });
-
-            var args = slice.call(arguments, 1);
-            if (isDefined(args)) {
-                args = [e].concat(args);
-            } else {
-                args = [e];
-            }
-            [e.type || e.name, "all"].forEach(function(eventName) {
-                var parsed = parse(eventName),
-                    name = parsed.name,
-                    ns = parsed.ns;
-
-                var listeners = self._hub[name];
-                if (!listeners) {
-                    return;
-                }
-
-                var len = listeners.length,
-                    reCompact = false;
-
-                for (var i = 0; i < len; i++) {
-                    var listener = listeners[i];
-                    if (ns && (!listener.ns ||  !listener.ns.startsWith(ns))) {
-                        continue;
-                    }
-                    if (e.data) {
-                        if (listener.data) {
-                            e.data = mixin({}, listener.data, e.data);
-                        }
-                    } else {
-                        e.data = listener.data || null;
-                    }
-                    listener.fn.apply(listener.ctx, args);
-                    if (listener.one) {
-                        listeners[i] = null;
-                        reCompact = true;
-                    }
-                }
-
-                if (reCompact) {
-                    self._hub[eventName] = compact(listeners);
-                }
-
-            });
-            return this;
-        },
-
-        listened: function(event) {
-            var evtArr = ((this._hub || (this._events = {}))[event] || []);
-            return evtArr.length > 0;
-        },
-
-        listenTo: function(obj, event, callback, /*used internally*/ one) {
-            if (!obj) {
-                return this;
-            }
-
-            // Bind callbacks on obj,
-            if (isString(callback)) {
-                callback = this[callback];
-            }
-
-            if (one) {
-                obj.one(event, callback, this);
-            } else {
-                obj.on(event, callback, this);
-            }
-
-            //keep track of them on listening.
-            var listeningTo = this._listeningTo || (this._listeningTo = []),
-                listening;
-
-            for (var i = 0; i < listeningTo.length; i++) {
-                if (listeningTo[i].obj == obj) {
-                    listening = listeningTo[i];
-                    break;
-                }
-            }
-            if (!listening) {
-                listeningTo.push(
-                    listening = {
-                        obj: obj,
-                        events: {}
-                    }
-                );
-            }
-            var listeningEvents = listening.events,
-                listeningEvent = listeningEvents[event] = listeningEvents[event] || [];
-            if (listeningEvent.indexOf(callback) == -1) {
-                listeningEvent.push(callback);
-            }
-
-            return this;
-        },
-
-        listenToOnce: function(obj, event, callback) {
-            return this.listenTo(obj, event, callback, 1);
-        },
-
-        off: function(events, callback) {
-            var _hub = this._hub || (this._hub = {});
-            if (isString(events)) {
-                events = events.split(/\s/)
-            }
-
-            events.forEach(function(event) {
-                var parsed = parse(event),
-                    name = parsed.name,
-                    ns = parsed.ns;
-
-                var evts = _hub[name];
-
-                if (evts) {
-                    var liveEvents = [];
-
-                    if (callback || ns) {
-                        for (var i = 0, len = evts.length; i < len; i++) {
-                            
-                            if (callback && evts[i].fn !== callback && evts[i].fn._ !== callback) {
-                                liveEvents.push(evts[i]);
-                                continue;
-                            } 
-
-                            if (ns && (!evts[i].ns || evts[i].ns.indexOf(ns)!=0)) {
-                                liveEvents.push(evts[i]);
-                                continue;
-                            }
-                        }
-                    }
-
-                    if (liveEvents.length) {
-                        _hub[name] = liveEvents;
-                    } else {
-                        delete _hub[name];
-                    }
-
-                }
-            });
-
-            return this;
-        },
-        unlistenTo: function(obj, event, callback) {
-            var listeningTo = this._listeningTo;
-            if (!listeningTo) {
-                return this;
-            }
-            for (var i = 0; i < listeningTo.length; i++) {
-                var listening = listeningTo[i];
-
-                if (obj && obj != listening.obj) {
-                    continue;
-                }
-
-                var listeningEvents = listening.events;
-                for (var eventName in listeningEvents) {
-                    if (event && event != eventName) {
-                        continue;
-                    }
-
-                    var listeningEvent = listeningEvents[eventName];
-
-                    for (var j = 0; j < listeningEvent.length; j++) {
-                        if (!callback || callback == listeningEvent[i]) {
-                            listening.obj.off(eventName, listeningEvent[i], this);
-                            listeningEvent[i] = null;
-                        }
-                    }
-
-                    listeningEvent = listeningEvents[eventName] = compact(listeningEvent);
-
-                    if (isEmptyObject(listeningEvent)) {
-                        listeningEvents[eventName] = null;
-                    }
-
-                }
-
-                if (isEmptyObject(listeningEvents)) {
-                    listeningTo[i] = null;
-                }
-            }
-
-            listeningTo = this._listeningTo = compact(listeningTo);
-            if (isEmptyObject(listeningTo)) {
-                this._listeningTo = null;
-            }
-
-            return this;
-        }
-    });
-
-    return skylark.attach("langx.Evented",Evented);
-
-});
-define('skylark-langx-emitter/main',[
-	"./Evented"
-],function(Evented){
-	return Evented;
-});
-define('skylark-langx-emitter', ['skylark-langx-emitter/main'], function (main) { return main; });
-
-define('skylark-langx/Evented',[
-    "skylark-langx-emitter"
-],function(Evented){
-    return Evented;
-});
-define('skylark-langx/funcs',[
-    "skylark-langx-funcs"
-],function(funcs){
-    return funcs;
+define('skylark-langx-events/events',[
+	"skylark-langx-ns"
+],function(skylark){
+	return skylark.attach("langx.events",{});
 });
 define('skylark-langx-hoster/hoster',[
     "skylark-langx-ns"
@@ -2863,6 +2815,21 @@ define('skylark-langx-hoster/hoster',[
 
 	var _document = null;
 
+	Object.defineProperty(hoster,"document",function(){
+		if (!_document) {
+			var w = typeof window === 'undefined' ? require('html-element') : window;
+			_document = w.document;
+		}
+
+		return _document;
+	});
+
+	if (hoster.global.CustomEvent === undefined) {
+		hoster.global.CustomEvent = function(type,props) {
+			this.type = type;
+			this.props = props;
+		};
+	}
 	Object.defineProperty(hoster,"document",function(){
 		if (!_document) {
 			var w = typeof window === 'undefined' ? require('html-element') : window;
@@ -2915,10 +2882,661 @@ define('skylark-langx-hoster/main',[
 });
 define('skylark-langx-hoster', ['skylark-langx-hoster/main'], function (main) { return main; });
 
+define('skylark-langx-events/Event',[
+  "skylark-langx-objects",
+  "skylark-langx-funcs",
+  "skylark-langx-klass",
+  "skylark-langx-hoster"
+],function(objects,funcs,klass){
+    var eventMethods = {
+        preventDefault: "isDefaultPrevented",
+        stopImmediatePropagation: "isImmediatePropagationStopped",
+        stopPropagation: "isPropagationStopped"
+     };
+        
+
+    function compatible(event, source) {
+        if (source || !event.isDefaultPrevented) {
+            if (!source) {
+                source = event;
+            }
+
+            objects.each(eventMethods, function(name, predicate) {
+                var sourceMethod = source[name];
+                event[name] = function() {
+                    this[predicate] = funcs.returnTrue;
+                    return sourceMethod && sourceMethod.apply(source, arguments);
+                }
+                event[predicate] = funcs.returnFalse;
+            });
+        }
+        return event;
+    }
+
+
+    /*
+    var Event = klass({
+        _construct : function(type,props) {
+            CustomEvent.call(this,type.props);
+            objects.safeMixin(this, props);
+            compatible(this);
+        }
+    },CustomEvent);
+    */
+
+    class Event extends CustomEvent {
+        constructor(type,props) {
+            super(type,props);
+            objects.safeMixin(this, props);
+            compatible(this);
+        } 
+    }
+
+
+    Event.compatible = compatible;
+
+    return Event;
+    
+});
+define('skylark-langx-events/Listener',[
+  "skylark-langx-types",
+  "skylark-langx-objects",
+  "skylark-langx-arrays",
+  "skylark-langx-klass",
+  "./events",
+  "./Event"
+],function(types,objects,arrays,klass,events,Event){
+    var slice = Array.prototype.slice,
+        compact = arrays.compact,
+        isDefined = types.isDefined,
+        isPlainObject = types.isPlainObject,
+        isFunction = types.isFunction,
+        isBoolean = types.isBoolean,
+        isString = types.isString,
+        isEmptyObject = types.isEmptyObject,
+        mixin = objects.mixin,
+        safeMixin = objects.safeMixin;
+
+
+    var Listener = klass({
+
+        listenTo: function(obj, event, callback, /*used internally*/ one) {
+            if (!obj) {
+                return this;
+            }
+
+            if (isBoolean(callback)) {
+                one = callback;
+                callback = null;
+            }
+
+            if (types.isPlainObject(event)){
+                //listenTo(obj,callbacks,one)
+                var callbacks = event;
+                for (var name in callbacks) {
+                    this.listenTo(obj,name,callbacks[name],one);
+                }
+                return this;
+            }
+
+            if (!callback) {
+                callback = "handleEvent";
+            }
+            
+            // Bind callbacks on obj,
+            if (isString(callback)) {
+                callback = this[callback];
+            }
+
+            if (one) {
+                obj.one(event, callback, this);
+            } else {
+                obj.on(event, callback, this);
+            }
+
+            //keep track of them on listening.
+            var listeningTo = this._listeningTo || (this._listeningTo = []),
+                listening;
+
+            for (var i = 0; i < listeningTo.length; i++) {
+                if (listeningTo[i].obj == obj) {
+                    listening = listeningTo[i];
+                    break;
+                }
+            }
+            if (!listening) {
+                listeningTo.push(
+                    listening = {
+                        obj: obj,
+                        events: {}
+                    }
+                );
+            }
+            var listeningEvents = listening.events,
+                listeningEvent = listeningEvents[event] = listeningEvents[event] || [];
+            if (listeningEvent.indexOf(callback) == -1) {
+                listeningEvent.push(callback);
+            }
+
+            return this;
+        },
+
+        listenToOnce: function(obj, event, callback) {
+            return this.listenTo(obj, event, callback, 1);
+        },
+
+        unlistenTo: function(obj, event, callback) {
+            var listeningTo = this._listeningTo;
+            if (!listeningTo) {
+                return this;
+            }
+
+            if (isString(callback)) {
+                callback = this[callback];
+            }
+
+            for (var i = 0; i < listeningTo.length; i++) {
+                var listening = listeningTo[i];
+
+                if (obj && obj != listening.obj) {
+                    continue;
+                }
+
+                var listeningEvents = listening.events;
+                for (var eventName in listeningEvents) {
+                    if (event && event != eventName) {
+                        continue;
+                    }
+
+                    var listeningEvent = listeningEvents[eventName];
+
+                    for (var j = 0; j < listeningEvent.length; j++) {
+                        if (!callback || callback == listeningEvent[i]) {
+                            listening.obj.off(eventName, listeningEvent[i], this);
+                            listeningEvent[i] = null;
+                        }
+                    }
+
+                    listeningEvent = listeningEvents[eventName] = compact(listeningEvent);
+
+                    if (isEmptyObject(listeningEvent)) {
+                        listeningEvents[eventName] = null;
+                    }
+
+                }
+
+                if (isEmptyObject(listeningEvents)) {
+                    listeningTo[i] = null;
+                }
+            }
+
+            listeningTo = this._listeningTo = compact(listeningTo);
+            if (isEmptyObject(listeningTo)) {
+                this._listeningTo = null;
+            }
+
+            return this;
+        }
+    });
+
+    return events.Listener = Listener;
+
+});
+define('skylark-langx-events/Emitter',[
+  "skylark-langx-types",
+  "skylark-langx-objects",
+  "skylark-langx-arrays",
+  "skylark-langx-klass",
+  "./events",
+  "./Event",
+  "./Listener"
+],function(types,objects,arrays,klass,events,Event,Listener){
+    var slice = Array.prototype.slice,
+        compact = arrays.compact,
+        isDefined = types.isDefined,
+        isPlainObject = types.isPlainObject,
+        isFunction = types.isFunction,
+        isString = types.isString,
+        isEmptyObject = types.isEmptyObject,
+        mixin = objects.mixin,
+        safeMixin = objects.safeMixin;
+
+    function parse(event) {
+        var segs = ("" + event).split(".");
+        return {
+            name: segs[0],
+            ns: segs.slice(1).join(" ")
+        };
+    }
+
+    var Emitter = Listener.inherit({
+        on: function(events, selector, data, callback, ctx, /*used internally*/ one) {
+            var self = this,
+                _hub = this._hub || (this._hub = {});
+
+            if (isPlainObject(events)) {
+                ctx = callback;
+                each(events, function(type, fn) {
+                    self.on(type, selector, data, fn, ctx, one);
+                });
+                return this;
+            }
+
+            if (!isString(selector) && !isFunction(callback)) {
+                ctx = callback;
+                callback = data;
+                data = selector;
+                selector = undefined;
+            }
+
+            if (isFunction(data)) {
+                ctx = callback;
+                callback = data;
+                data = null;
+            }
+
+            if (!callback ) {
+                throw new Error("No callback function");
+            } else if (!isFunction(callback)) {
+                throw new Error("The callback  is not afunction");
+            }
+
+            if (isString(events)) {
+                events = events.split(/\s/)
+            }
+
+            events.forEach(function(event) {
+                var parsed = parse(event),
+                    name = parsed.name,
+                    ns = parsed.ns;
+
+                (_hub[name] || (_hub[name] = [])).push({
+                    fn: callback,
+                    selector: selector,
+                    data: data,
+                    ctx: ctx,
+                    ns : ns,
+                    one: one
+                });
+            });
+
+            return this;
+        },
+
+        one: function(events, selector, data, callback, ctx) {
+            return this.on(events, selector, data, callback, ctx, 1);
+        },
+
+        emit: function(e /*,argument list*/ ) {
+            if (!this._hub) {
+                return this;
+            }
+
+            var self = this;
+
+            if (isString(e)) {
+                e = new Event(e); //new CustomEvent(e);
+            }
+
+            Object.defineProperty(e,"target",{
+                value : this
+            });
+
+            var args = slice.call(arguments, 1);
+            if (isDefined(args)) {
+                args = [e].concat(args);
+            } else {
+                args = [e];
+            }
+            [e.type || e.name, "all"].forEach(function(eventName) {
+                var parsed = parse(eventName),
+                    name = parsed.name,
+                    ns = parsed.ns;
+
+                var listeners = self._hub[name];
+                if (!listeners) {
+                    return;
+                }
+
+                var len = listeners.length,
+                    reCompact = false;
+
+                for (var i = 0; i < len; i++) {
+                    if (e.isImmediatePropagationStopped && e.isImmediatePropagationStopped()) {
+                        return this;
+                    }
+                    var listener = listeners[i];
+                    if (ns && (!listener.ns ||  !listener.ns.startsWith(ns))) {
+                        continue;
+                    }
+                    if (e.data) {
+                        if (listener.data) {
+                            e.data = mixin({}, listener.data, e.data);
+                        }
+                    } else {
+                        e.data = listener.data || null;
+                    }
+                    listener.fn.apply(listener.ctx, args);
+                    if (listener.one) {
+                        listeners[i] = null;
+                        reCompact = true;
+                    }
+                }
+
+                if (reCompact) {
+                    self._hub[eventName] = compact(listeners);
+                }
+
+            });
+            return this;
+        },
+
+        listened: function(event) {
+            var evtArr = ((this._hub || (this._events = {}))[event] || []);
+            return evtArr.length > 0;
+        },
+
+        off: function(events, callback) {
+            var _hub = this._hub || (this._hub = {});
+            if (isString(events)) {
+                events = events.split(/\s/)
+            }
+
+            events.forEach(function(event) {
+                var parsed = parse(event),
+                    name = parsed.name,
+                    ns = parsed.ns;
+
+                var evts = _hub[name];
+
+                if (evts) {
+                    var liveEvents = [];
+
+                    if (callback || ns) {
+                        for (var i = 0, len = evts.length; i < len; i++) {
+                            
+                            if (callback && evts[i].fn !== callback && evts[i].fn._ !== callback) {
+                                liveEvents.push(evts[i]);
+                                continue;
+                            } 
+
+                            if (ns && (!evts[i].ns || evts[i].ns.indexOf(ns)!=0)) {
+                                liveEvents.push(evts[i]);
+                                continue;
+                            }
+                        }
+                    }
+
+                    if (liveEvents.length) {
+                        _hub[name] = liveEvents;
+                    } else {
+                        delete _hub[name];
+                    }
+
+                }
+            });
+
+            return this;
+        },
+        trigger  : function() {
+            return this.emit.apply(this,arguments);
+        }
+    });
+
+
+    return events.Emitter = Emitter;
+
+});
+define('skylark-langx/Emitter',[
+    "skylark-langx-events/Emitter"
+],function(Emitter){
+    return Emitter;
+});
+define('skylark-langx/Evented',[
+    "./Emitter"
+],function(Emitter){
+    return Emitter;
+});
+define('skylark-langx-events/createEvent',[
+	"./events",
+	"./Event"
+],function(events,Event){
+    function createEvent(type,props) {
+        //var e = new CustomEvent(type,props);
+        //return safeMixin(e, props);
+        return new Event(type,props);
+    };
+
+    return events.createEvent = createEvent;	
+});
+define('skylark-langx-events/main',[
+	"./events",
+	"./Event",
+	"./Listener",
+	"./Emitter",
+	"./createEvent"
+],function(events){
+	return events;
+});
+define('skylark-langx-events', ['skylark-langx-events/main'], function (main) { return main; });
+
+define('skylark-langx/events',[
+	"skylark-langx-events"
+],function(events){
+	return events;
+});
+define('skylark-langx/funcs',[
+    "skylark-langx-funcs"
+],function(funcs){
+    return funcs;
+});
 define('skylark-langx/hoster',[
 	"skylark-langx-hoster"
 ],function(hoster){
 	return hoster;
+});
+define('skylark-langx-maths/maths',[
+    "skylark-langx-ns",
+    "skylark-langx-types"
+],function(skylark,types){
+
+
+	var _lut = [];
+
+	for ( var i = 0; i < 256; i ++ ) {
+
+		_lut[ i ] = ( i < 16 ? '0' : '' ) + ( i ).toString( 16 );
+
+	}
+
+	var maths = {
+
+		DEG2RAD: Math.PI / 180,
+		RAD2DEG: 180 / Math.PI,
+
+
+
+		clamp: function ( value, min, max ) {
+
+			return Math.max( min, Math.min( max, value ) );
+
+		},
+
+		// compute euclidian modulo of m % n
+		// https://en.wikipedia.org/wiki/Modulo_operation
+
+		euclideanModulo: function ( n, m ) {
+
+			return ( ( n % m ) + m ) % m;
+
+		},
+
+		// Linear mapping from range <a1, a2> to range <b1, b2>
+
+		mapLinear: function ( x, a1, a2, b1, b2 ) {
+
+			return b1 + ( x - a1 ) * ( b2 - b1 ) / ( a2 - a1 );
+
+		},
+
+		// https://en.wikipedia.org/wiki/Linear_interpolation
+
+		lerp: function ( x, y, t ) {
+
+			return ( 1 - t ) * x + t * y;
+
+		},
+
+		// http://en.wikipedia.org/wiki/Smoothstep
+
+		smoothstep: function ( x, min, max ) {
+
+			if ( x <= min ) return 0;
+			if ( x >= max ) return 1;
+
+			x = ( x - min ) / ( max - min );
+
+			return x * x * ( 3 - 2 * x );
+
+		},
+
+		smootherstep: function ( x, min, max ) {
+
+			if ( x <= min ) return 0;
+			if ( x >= max ) return 1;
+
+			x = ( x - min ) / ( max - min );
+
+			return x * x * x * ( x * ( x * 6 - 15 ) + 10 );
+
+		},
+
+		// Random integer from <low, high> interval
+
+		randInt: function ( low, high ) {
+
+			return low + Math.floor( Math.random() * ( high - low + 1 ) );
+
+		},
+
+		// Random float from <low, high> interval
+
+		randFloat: function ( low, high ) {
+
+			return low + Math.random() * ( high - low );
+
+		},
+
+		// Random float from <-range/2, range/2> interval
+
+		randFloatSpread: function ( range ) {
+
+			return range * ( 0.5 - Math.random() );
+
+		},
+
+		degToRad: function ( degrees ) {
+
+			return degrees * MathUtils.DEG2RAD;
+
+		},
+
+		radToDeg: function ( radians ) {
+
+			return radians * MathUtils.RAD2DEG;
+
+		},
+
+		isPowerOfTwo: function ( value ) {
+
+			return ( value & ( value - 1 ) ) === 0 && value !== 0;
+
+		},
+
+		ceilPowerOfTwo: function ( value ) {
+
+			return Math.pow( 2, Math.ceil( Math.log( value ) / Math.LN2 ) );
+
+		},
+
+		floorPowerOfTwo: function ( value ) {
+
+			return Math.pow( 2, Math.floor( Math.log( value ) / Math.LN2 ) );
+
+		},
+
+		setQuaternionFromProperEuler: function ( q, a, b, c, order ) {
+
+			// Intrinsic Proper Euler Angles - see https://en.wikipedia.org/wiki/Euler_angles
+
+			// rotations are applied to the axes in the order specified by 'order'
+			// rotation by angle 'a' is applied first, then by angle 'b', then by angle 'c'
+			// angles are in radians
+
+			var cos = Math.cos;
+			var sin = Math.sin;
+
+			var c2 = cos( b / 2 );
+			var s2 = sin( b / 2 );
+
+			var c13 = cos( ( a + c ) / 2 );
+			var s13 = sin( ( a + c ) / 2 );
+
+			var c1_3 = cos( ( a - c ) / 2 );
+			var s1_3 = sin( ( a - c ) / 2 );
+
+			var c3_1 = cos( ( c - a ) / 2 );
+			var s3_1 = sin( ( c - a ) / 2 );
+
+			if ( order === 'XYX' ) {
+
+				q.set( c2 * s13, s2 * c1_3, s2 * s1_3, c2 * c13 );
+
+			} else if ( order === 'YZY' ) {
+
+				q.set( s2 * s1_3, c2 * s13, s2 * c1_3, c2 * c13 );
+
+			} else if ( order === 'ZXZ' ) {
+
+				q.set( s2 * c1_3, s2 * s1_3, c2 * s13, c2 * c13 );
+
+			} else if ( order === 'XZX' ) {
+
+				q.set( c2 * s13, s2 * s3_1, s2 * c3_1, c2 * c13 );
+
+			} else if ( order === 'YXY' ) {
+
+				q.set( s2 * c3_1, c2 * s13, s2 * s3_1, c2 * c13 );
+
+			} else if ( order === 'ZYZ' ) {
+
+				q.set( s2 * s3_1, s2 * c3_1, c2 * s13, c2 * c13 );
+
+			} else {
+
+				console.warn( 'THREE.MathUtils: .setQuaternionFromProperEuler() encountered an unknown order.' );
+
+			}
+
+		}
+
+	};
+
+
+
+	return  skylark.attach("langx.maths",maths);
+});
+define('skylark-langx-maths/main',[
+	"./maths"
+],function(maths){
+	return maths;
+});
+define('skylark-langx-maths', ['skylark-langx-maths/main'], function (main) { return main; });
+
+define('skylark-langx/maths',[
+    "skylark-langx-maths"
+],function(maths){
+    return maths;
 });
 define('skylark-langx/numbers',[
 	"skylark-langx-numbers"
@@ -3124,8 +3742,13 @@ define('skylark-langx-strings/strings',[
         return document.getElementById(id).innerHTML;
     };
 
+
+    function ltrim(str) {
+        return str.replace(/^\s+/, '');
+    }
+    
     function rtrim(str) {
-        return str.replace(/\s+$/g, '');
+        return str.replace(/\s+$/, '');
     }
 
     // Slugify a string
@@ -3192,6 +3815,8 @@ define('skylark-langx-strings/strings',[
 
         generateUUID : generateUUID,
 
+        ltrim : ltrim,
+
         lowerFirst: function(str) {
             return str.charAt(0).toLowerCase() + str.slice(1);
         },
@@ -3207,7 +3832,7 @@ define('skylark-langx-strings/strings',[
 
         slugify : slugify,
 
-        template : template,
+        //template : template,
 
         trim: trim,
 
@@ -3219,8 +3844,159 @@ define('skylark-langx-strings/strings',[
 	}) ; 
 
 });
-define('skylark-langx-strings/main',[
+define('skylark-langx-strings/base64',[
 	"./strings"
+],function(strings) {
+
+	// private property
+	const _keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+
+	// private method for UTF-8 encoding
+	function _utf8_encode(string) {
+		string = string.replace(/\r\n/g,"\n");
+		var utftext = "";
+
+		for (var n = 0; n < string.length; n++) {
+
+			var c = string.charCodeAt(n);
+
+			if (c < 128) {
+				utftext += String.fromCharCode(c);
+			}
+			else if((c > 127) && (c < 2048)) {
+				utftext += String.fromCharCode((c >> 6) | 192);
+				utftext += String.fromCharCode((c & 63) | 128);
+			}
+			else {
+				utftext += String.fromCharCode((c >> 12) | 224);
+				utftext += String.fromCharCode(((c >> 6) & 63) | 128);
+				utftext += String.fromCharCode((c & 63) | 128);
+			}
+
+		}
+
+		return utftext;
+	}
+
+	// private method for UTF-8 decoding
+	function _utf8_decode(utftext) {
+		var string = "";
+		var i = 0;
+		var c = c1 = c2 = 0;
+
+		while ( i < utftext.length ) {
+
+			c = utftext.charCodeAt(i);
+
+			if (c < 128) {
+				string += String.fromCharCode(c);
+				i++;
+			}
+			else if((c > 191) && (c < 224)) {
+				c2 = utftext.charCodeAt(i+1);
+				string += String.fromCharCode(((c & 31) << 6) | (c2 & 63));
+				i += 2;
+			}
+			else {
+				c2 = utftext.charCodeAt(i+1);
+				c3 = utftext.charCodeAt(i+2);
+				string += String.fromCharCode(((c & 15) << 12) | ((c2 & 63) << 6) | (c3 & 63));
+				i += 3;
+			}
+
+		}
+
+		return string;
+	}
+
+	// public method for encoding
+	function encode(input, binary) {
+		binary = (binary != null) ? binary : false;
+		var output = "";
+		var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+		var i = 0;
+
+		if (!binary)
+		{
+			input = _utf8_encode(input);
+		}
+
+		while (i < input.length) {
+
+			chr1 = input.charCodeAt(i++);
+			chr2 = input.charCodeAt(i++);
+			chr3 = input.charCodeAt(i++);
+
+			enc1 = chr1 >> 2;
+			enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+			enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+			enc4 = chr3 & 63;
+
+			if (isNaN(chr2)) {
+				enc3 = enc4 = 64;
+			} else if (isNaN(chr3)) {
+				enc4 = 64;
+			}
+
+			output = output +
+			this._keyStr.charAt(enc1) + this._keyStr.charAt(enc2) +
+			this._keyStr.charAt(enc3) + this._keyStr.charAt(enc4);
+
+		}
+
+		return output;
+	}
+
+	// public method for decoding
+	function decode(input, binary) {
+		binary = (binary != null) ? binary : false;
+		var output = "";
+		var chr1, chr2, chr3;
+		var enc1, enc2, enc3, enc4;
+		var i = 0;
+
+		input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+
+		while (i < input.length) {
+
+			enc1 = this._keyStr.indexOf(input.charAt(i++));
+			enc2 = this._keyStr.indexOf(input.charAt(i++));
+			enc3 = this._keyStr.indexOf(input.charAt(i++));
+			enc4 = this._keyStr.indexOf(input.charAt(i++));
+
+			chr1 = (enc1 << 2) | (enc2 >> 4);
+			chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+			chr3 = ((enc3 & 3) << 6) | enc4;
+
+			output = output + String.fromCharCode(chr1);
+
+			if (enc3 != 64) {
+				output = output + String.fromCharCode(chr2);
+			}
+			if (enc4 != 64) {
+				output = output + String.fromCharCode(chr3);
+			}
+
+		}
+
+		if (!binary) {
+			output = _utf8_decode(output);
+		}
+
+		return output;
+
+	}
+
+
+	return strings.base64 = {
+		decode,
+		encode
+	};
+	
+});
+define('skylark-langx-strings/main',[
+	"./strings",
+	"./base64"
 ],function(strings){
 	return strings;
 });
@@ -3230,506 +4006,6 @@ define('skylark-langx/strings',[
     "skylark-langx-strings"
 ],function(strings){
     return strings;
-});
-define('skylark-langx-xhr/Xhr',[
-  "skylark-langx-ns/ns",
-  "skylark-langx-types",
-  "skylark-langx-objects",
-  "skylark-langx-arrays",
-  "skylark-langx-funcs",
-  "skylark-langx-async/Deferred",
-  "skylark-langx-emitter/Evented"
-],function(skylark,types,objects,arrays,funcs,Deferred,Evented){
-
-    var each = objects.each,
-        mixin = objects.mixin,
-        noop = funcs.noop,
-        isArray = types.isArray,
-        isFunction = types.isFunction,
-        isPlainObject = types.isPlainObject,
-        type = types.type;
- 
-     var getAbsoluteUrl = (function() {
-        var a;
-
-        return function(url) {
-            if (!a) a = document.createElement('a');
-            a.href = url;
-
-            return a.href;
-        };
-    })();
-   
-    var Xhr = (function(){
-        var jsonpID = 0,
-            key,
-            name,
-            rscript = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-            scriptTypeRE = /^(?:text|application)\/javascript/i,
-            xmlTypeRE = /^(?:text|application)\/xml/i,
-            jsonType = 'application/json',
-            htmlType = 'text/html',
-            blankRE = /^\s*$/;
-
-        var XhrDefaultOptions = {
-            async: true,
-
-            // Default type of request
-            type: 'GET',
-            // Callback that is executed before request
-            beforeSend: noop,
-            // Callback that is executed if the request succeeds
-            success: noop,
-            // Callback that is executed the the server drops error
-            error: noop,
-            // Callback that is executed on request complete (both: error and success)
-            complete: noop,
-            // The context for the callbacks
-            context: null,
-            // Whether to trigger "global" Ajax events
-            global: true,
-
-            // MIME types mapping
-            // IIS returns Javascript as "application/x-javascript"
-            accepts: {
-                script: 'text/javascript, application/javascript, application/x-javascript',
-                json: 'application/json',
-                xml: 'application/xml, text/xml',
-                html: 'text/html',
-                text: 'text/plain'
-            },
-            // Whether the request is to another domain
-            crossDomain: false,
-            // Default timeout
-            timeout: 0,
-            // Whether data should be serialized to string
-            processData: true,
-            // Whether the browser should be allowed to cache GET responses
-            cache: true,
-
-            xhrFields : {
-                withCredentials : true
-            }
-        };
-
-        function mimeToDataType(mime) {
-            if (mime) {
-                mime = mime.split(';', 2)[0];
-            }
-            if (mime) {
-                if (mime == htmlType) {
-                    return "html";
-                } else if (mime == jsonType) {
-                    return "json";
-                } else if (scriptTypeRE.test(mime)) {
-                    return "script";
-                } else if (xmlTypeRE.test(mime)) {
-                    return "xml";
-                }
-            }
-            return "text";
-        }
-
-        function appendQuery(url, query) {
-            if (query == '') return url
-            return (url + '&' + query).replace(/[&?]{1,2}/, '?')
-        }
-
-        // serialize payload and append it to the URL for GET requests
-        function serializeData(options) {
-            options.data = options.data || options.query;
-            if (options.processData && options.data && type(options.data) != "string") {
-                options.data = param(options.data, options.traditional);
-            }
-            if (options.data && (!options.type || options.type.toUpperCase() == 'GET')) {
-                options.url = appendQuery(options.url, options.data);
-                options.data = undefined;
-            }
-        }
-
-        function serialize(params, obj, traditional, scope) {
-            var t, array = isArray(obj),
-                hash = isPlainObject(obj)
-            each(obj, function(key, value) {
-                t =type(value);
-                if (scope) key = traditional ? scope :
-                    scope + '[' + (hash || t == 'object' || t == 'array' ? key : '') + ']'
-                // handle data in serializeArray() format
-                if (!scope && array) params.add(value.name, value.value)
-                // recurse into nested objects
-                else if (t == "array" || (!traditional && t == "object"))
-                    serialize(params, value, traditional, key)
-                else params.add(key, value)
-            })
-        }
-
-        var param = function(obj, traditional) {
-            var params = []
-            params.add = function(key, value) {
-                if (isFunction(value)) {
-                  value = value();
-                }
-                if (value == null) {
-                  value = "";
-                }
-                this.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
-            };
-            serialize(params, obj, traditional)
-            return params.join('&').replace(/%20/g, '+')
-        };
-
-        var Xhr = Evented.inherit({
-            klassName : "Xhr",
-
-            _request  : function(args) {
-                var _ = this._,
-                    self = this,
-                    options = mixin({},XhrDefaultOptions,_.options,args),
-                    xhr = _.xhr = new XMLHttpRequest();
-
-                serializeData(options)
-
-                if (options.beforeSend) {
-                    options.beforeSend.call(this, xhr, options);
-                }                
-
-                var dataType = options.dataType || options.handleAs,
-                    mime = options.mimeType || options.accepts[dataType],
-                    headers = options.headers,
-                    xhrFields = options.xhrFields,
-                    isFormData = options.data && options.data instanceof FormData,
-                    basicAuthorizationToken = options.basicAuthorizationToken,
-                    type = options.type,
-                    url = options.url,
-                    async = options.async,
-                    user = options.user , 
-                    password = options.password,
-                    deferred = new Deferred(),
-                    contentType = isFormData ? false : 'application/x-www-form-urlencoded';
-
-                if (xhrFields) {
-                    for (name in xhrFields) {
-                        xhr[name] = xhrFields[name];
-                    }
-                }
-
-                if (mime && mime.indexOf(',') > -1) {
-                    mime = mime.split(',', 2)[0];
-                }
-                if (mime && xhr.overrideMimeType) {
-                    xhr.overrideMimeType(mime);
-                }
-
-                //if (dataType) {
-                //    xhr.responseType = dataType;
-                //}
-
-                var finish = function() {
-                    xhr.onloadend = noop;
-                    xhr.onabort = noop;
-                    xhr.onprogress = noop;
-                    xhr.ontimeout = noop;
-                    xhr = null;
-                }
-                var onloadend = function() {
-                    var result, error = false
-                    if ((xhr.status >= 200 && xhr.status < 300) || xhr.status == 304 || (xhr.status == 0 && getAbsoluteUrl(url).startsWith('file:'))) {
-                        dataType = dataType || mimeToDataType(options.mimeType || xhr.getResponseHeader('content-type'));
-
-                        result = xhr.responseText;
-                        try {
-                            if (dataType == 'script') {
-                                eval(result);
-                            } else if (dataType == 'xml') {
-                                result = xhr.responseXML;
-                            } else if (dataType == 'json') {
-                                result = blankRE.test(result) ? null : JSON.parse(result);
-                            } else if (dataType == "blob") {
-                                result = Blob([xhrObj.response]);
-                            } else if (dataType == "arraybuffer") {
-                                result = xhr.reponse;
-                            }
-                        } catch (e) { 
-                            error = e;
-                        }
-
-                        if (error) {
-                            deferred.reject(error,xhr.status,xhr);
-                        } else {
-                            deferred.resolve(result,xhr.status,xhr);
-                        }
-                    } else {
-                        deferred.reject(new Error(xhr.statusText),xhr.status,xhr);
-                    }
-                    finish();
-                };
-
-                var onabort = function() {
-                    if (deferred) {
-                        deferred.reject(new Error("abort"),xhr.status,xhr);
-                    }
-                    finish();                 
-                }
- 
-                var ontimeout = function() {
-                    if (deferred) {
-                        deferred.reject(new Error("timeout"),xhr.status,xhr);
-                    }
-                    finish();                 
-                }
-
-                var onprogress = function(evt) {
-                    if (deferred) {
-                        deferred.notify(evt,xhr.status,xhr);
-                    }
-                }
-
-                xhr.onloadend = onloadend;
-                xhr.onabort = onabort;
-                xhr.ontimeout = ontimeout;
-                xhr.onprogress = onprogress;
-
-                xhr.open(type, url, async, user, password);
-               
-                if (headers) {
-                    for ( var key in headers) {
-                        var value = headers[key];
- 
-                        if(key.toLowerCase() === 'content-type'){
-                            contentType = headers[hdr];
-                        } else {
-                           xhr.setRequestHeader(key, value);
-                        }
-                    }
-                }   
-
-                if  (contentType && contentType !== false){
-                    xhr.setRequestHeader('Content-Type', contentType);
-                }
-
-                if(!headers || !('X-Requested-With' in headers)){
-                    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-                }
-
-
-                //If basicAuthorizationToken is defined set its value into "Authorization" header
-                if (basicAuthorizationToken) {
-                    xhr.setRequestHeader("Authorization", basicAuthorizationToken);
-                }
-
-                xhr.send(options.data ? options.data : null);
-
-                return deferred.promise;
-
-            },
-
-            "abort": function() {
-                var _ = this._,
-                    xhr = _.xhr;
-
-                if (xhr) {
-                    xhr.abort();
-                }    
-            },
-
-
-            "request": function(args) {
-                return this._request(args);
-            },
-
-            get : function(args) {
-                args = args || {};
-                args.type = "GET";
-                return this._request(args);
-            },
-
-            post : function(args) {
-                args = args || {};
-                args.type = "POST";
-                return this._request(args);
-            },
-
-            patch : function(args) {
-                args = args || {};
-                args.type = "PATCH";
-                return this._request(args);
-            },
-
-            put : function(args) {
-                args = args || {};
-                args.type = "PUT";
-                return this._request(args);
-            },
-
-            del : function(args) {
-                args = args || {};
-                args.type = "DELETE";
-                return this._request(args);
-            },
-
-            "init": function(options) {
-                this._ = {
-                    options : options || {}
-                };
-            }
-        });
-
-        ["request","get","post","put","del","patch"].forEach(function(name){
-            Xhr[name] = function(url,args) {
-                var xhr = new Xhr({"url" : url});
-                return xhr[name](args);
-            };
-        });
-
-        Xhr.defaultOptions = XhrDefaultOptions;
-        Xhr.param = param;
-
-        return Xhr;
-    })();
-
-	return skylark.attach("langx.Xhr",Xhr);	
-});
-define('skylark-langx-xhr/main',[
-	"./Xhr"
-],function(Xhr){
-	return Xhr;
-});
-define('skylark-langx-xhr', ['skylark-langx-xhr/main'], function (main) { return main; });
-
-define('skylark-langx/Xhr',[
-    "skylark-langx-xhr"
-],function(xhr){
-    return xhr;
-});
-define('skylark-langx/Restful',[
-    "./Evented",
-    "./objects",
-    "./strings",
-    "./Xhr"
-],function(Evented,objects,strings,Xhr){
-    var mixin = objects.mixin,
-        substitute = strings.substitute;
-
-    var Restful = Evented.inherit({
-        "klassName" : "Restful",
-
-        "idAttribute": "id",
-        
-        getBaseUrl : function(args) {
-            //$$baseEndpoint : "/files/${fileId}/comments",
-            var baseEndpoint = substitute(this.baseEndpoint,args),
-                baseUrl = this.server + this.basePath + baseEndpoint;
-            if (args[this.idAttribute]!==undefined) {
-                baseUrl = baseUrl + "/" + args[this.idAttribute]; 
-            }
-            return baseUrl;
-        },
-        _head : function(args) {
-            //get resource metadata .
-            //args : id and other info for the resource ,ex
-            //{
-            //  "id" : 234,  // the own id, required
-            //  "fileId"   : 2 // the parent resource id, option by resource
-            //}
-        },
-        _get : function(args) {
-            //get resource ,one or list .
-            //args : id and other info for the resource ,ex
-            //{
-            //  "id" : 234,  // the own id, null if list
-            //  "fileId"   : 2 // the parent resource id, option by resource
-            //}
-            return Xhr.get(this.getBaseUrl(args),args);
-        },
-        _post  : function(args,verb) {
-            //create or move resource .
-            //args : id and other info for the resource ,ex
-            //{
-            //  "id" : 234,  // the own id, required
-            //  "data" : body // the own data,required
-            //  "fileId"   : 2 // the parent resource id, option by resource
-            //}
-            //verb : the verb ,ex: copy,touch,trash,untrash,watch
-            var url = this.getBaseUrl(args);
-            if (verb) {
-                url = url + "/" + verb;
-            }
-            return Xhr.post(url, args);
-        },
-
-        _put  : function(args,verb) {
-            //update resource .
-            //args : id and other info for the resource ,ex
-            //{
-            //  "id" : 234,  // the own id, required
-            //  "data" : body // the own data,required
-            //  "fileId"   : 2 // the parent resource id, option by resource
-            //}
-            //verb : the verb ,ex: copy,touch,trash,untrash,watch
-            var url = this.getBaseUrl(args);
-            if (verb) {
-                url = url + "/" + verb;
-            }
-            return Xhr.put(url, args);
-        },
-
-        _delete : function(args) {
-            //delete resource . 
-            //args : id and other info for the resource ,ex
-            //{
-            //  "id" : 234,  // the own id, required
-            //  "fileId"   : 2 // the parent resource id, option by resource
-            //}         
-
-            // HTTP request : DELETE http://center.utilhub.com/registry/v1/apps/{appid}
-            var url = this.getBaseUrl(args);
-            return Xhr.del(url);
-        },
-
-        _patch : function(args){
-            //update resource metadata. 
-            //args : id and other info for the resource ,ex
-            //{
-            //  "id" : 234,  // the own id, required
-            //  "data" : body // the own data,required
-            //  "fileId"   : 2 // the parent resource id, option by resource
-            //}
-            var url = this.getBaseUrl(args);
-            return Xhr.patch(url, args);
-        },
-        query: function(params) {
-            
-            return this._post(params);
-        },
-
-        retrieve: function(params) {
-            return this._get(params);
-        },
-
-        create: function(params) {
-            return this._post(params);
-        },
-
-        update: function(params) {
-            return this._put(params);
-        },
-
-        delete: function(params) {
-            // HTTP request : DELETE http://center.utilhub.com/registry/v1/apps/{appid}
-            return this._delete(params);
-        },
-
-        patch: function(params) {
-           // HTTP request : PATCH http://center.utilhub.com/registry/v1/apps/{appid}
-            return this._patch(params);
-        },
-        init: function(params) {
-            mixin(this,params);
- //           this._xhr = XHRx();
-       }
-    });
-
-    return Restful;
 });
 define('skylark-langx/Stateful',[
 	"./Evented",
@@ -3943,6 +4219,16 @@ define('skylark-langx/Stateful',[
 
 	return Stateful;
 });
+define('skylark-langx-emitter/Emitter',[
+    "skylark-langx-events/Emitter"
+],function(Emitter){
+    return Emitter;
+});
+define('skylark-langx-emitter/Evented',[
+	"./Emitter"
+],function(Emitter){
+	return Emitter;
+});
 define('skylark-langx-topic/topic',[
 	"skylark-langx-ns",
 	"skylark-langx-emitter/Evented"
@@ -3997,21 +4283,45 @@ define('skylark-langx/langx',[
     "./ArrayStore",
     "./aspect",
     "./async",
+    "./binary",
     "./datetimes",
     "./Deferred",
+    "./Emitter",
     "./Evented",
+    "./events",
     "./funcs",
     "./hoster",
     "./klass",
+    "./maths",
     "./numbers",
     "./objects",
-    "./Restful",
     "./Stateful",
     "./strings",
     "./topic",
-    "./types",
-    "./Xhr"
-], function(skylark,arrays,ArrayStore,aspect,async,datetimes,Deferred,Evented,funcs,hoster,klass,numbers,objects,Restful,Stateful,strings,topic,types,Xhr) {
+    "./types"
+], function(
+    skylark,
+    arrays,
+    ArrayStore,
+    aspect,
+    async,
+    binary,
+    datetimes,
+    Deferred,
+    Emitter,
+    Evented,
+    events,
+    funcs,
+    hoster,
+    klass,
+    maths,
+    numbers,
+    objects,
+    Stateful,
+    strings,
+    topic,
+    types
+) {
     "use strict";
     var toString = {}.toString,
         concat = Array.prototype.concat,
@@ -4022,13 +4332,6 @@ define('skylark-langx/langx',[
         safeMixin = objects.safeMixin,
         isFunction = types.isFunction;
 
-
-    function createEvent(type, props) {
-        var e = new CustomEvent(type, props);
-
-        return safeMixin(e, props);
-    }
-    
 
     function funcArg(context, arg, idx, payload) {
         return isFunction(arg) ? arg.call(context, idx, payload) : arg;
@@ -4067,7 +4370,7 @@ define('skylark-langx/langx',[
     }
 
     mixin(langx, {
-        createEvent : createEvent,
+        createEvent : Emitter.createEvent,
 
         funcArg: funcArg,
 
@@ -4089,30 +4392,27 @@ define('skylark-langx/langx',[
         
         Deferred: Deferred,
 
+        Emitter: Emitter,
+
         Evented: Evented,
 
         hoster : hoster,
 
         klass : klass,
-
-        Restful: Restful,
-        
+       
         Stateful: Stateful,
 
-        topic : topic,
-
-        Xhr: Xhr
-
+        topic : topic
     });
 
     return skylark.langx = langx;
 });
-define('skylark-ajaxfy-routers/routers',[
+define('skylark-ajaxify-routers/routers',[
 	"skylark-langx/skylark",
 	"skylark-langx/langx"	
 ],function(skylark,langx){
 
-	return skylark.attach("ajaxfy.routers",{
+	return skylark.attach("ajaxify.routers",{
         createEvent : function (type,props) {
             var e = new CustomEvent(type,props);
             return langx.safeMixin(e, props);
@@ -4121,7 +4421,7 @@ define('skylark-ajaxfy-routers/routers',[
 	});	
 });
 
-define('skylark-ajaxfy-routers/Route',[
+define('skylark-ajaxify-routers/Route',[
 	"skylark-langx/langx",
 	"./routers"
 ],function(langx,routers){
@@ -4259,7 +4559,7 @@ define('skylark-ajaxfy-routers/Route',[
 
 	return routers.Route = Route;	
 });
-define('skylark-ajaxfy-routers/Router',[
+define('skylark-ajaxify-routers/Router',[
     "skylark-langx/langx",
     "./routers",
     "./Route"
@@ -4566,7 +4866,7 @@ define('skylark-ajaxfy-routers/Router',[
     return routers.Router = Router;
 });
 
-define('skylark-ajaxfy-routers/main',[
+define('skylark-ajaxify-routers/main',[
     "./routers",
     "./Router",
     "./Route"
@@ -4574,12 +4874,12 @@ define('skylark-ajaxfy-routers/main',[
     return routers;
 });
 
-define('skylark-ajaxfy-routers', ['skylark-ajaxfy-routers/main'], function (main) { return main; });
+define('skylark-ajaxify-routers', ['skylark-ajaxify-routers/main'], function (main) { return main; });
 
-define('skylark-ajaxfy-spa/spa',[
+define('skylark-ajaxify-spa/spa',[
     "skylark-langx/skylark",
     "skylark-langx/langx",
-    "skylark-ajaxfy-routers"
+    "skylark-ajaxify-routers"
 ], function(skylark, langx, routers) {
     var Deferred = langx.Deferred;
 
@@ -4921,17 +5221,17 @@ define('skylark-ajaxfy-spa/spa',[
 
     });
 
-    return skylark.attach("ajaxfy.spa",spa);
+    return skylark.attach("ajaxify.spa",spa);
 });
 
-define('skylark-ajaxfy-spa/main',[
-    "skylark-langx/skylark",
+define('skylark-ajaxify-spa/main',[
     "./spa"
-], function(skylark) {
-    return skylark;
+], function(spa) {
+    return spa;
 });
 
-define('skylark-ajaxfy-spa', ['skylark-ajaxfy-spa/main'], function (main) { return main; });
+define('skylark-ajaxify-spa', ['skylark-ajaxify-spa/main'], function (main) { return main; });
 
 
 },this);
+//# sourceMappingURL=sourcemaps/skylark-ajaxify-spa-all.js.map

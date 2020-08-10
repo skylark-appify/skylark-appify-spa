@@ -1,15 +1,15 @@
 define([
     "skylarkjs"
 ], function(skylarkjs) {
-    var spa = skylarkjs.ajaxfy.spa,
-    	noder = skylarkjs.dom.noder,
-        $ = skylarkjs.dom.query;
+    var spa = skylarkjs.ajaxify.spa,
+    	fx = skylarkjs.domx.fx,
+        $ = skylarkjs.domx.query;
 
     return spa.PluginController.inherit({
         klassName: "AppController",
         _showProcessing : function() {
             if (!this._throbber) {
-                this._throbber = noder.throb(document.body);                
+                this._throbber = fx.throb(document.body);                
             }
 
         },

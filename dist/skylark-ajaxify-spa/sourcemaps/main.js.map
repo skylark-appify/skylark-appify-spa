@@ -1,0 +1,1 @@
+{"version":3,"sources":["main.js"],"names":["define","spa"],"mappings":";;;;;;;AAAAA,QACI,SACD,SAASC,GACR,OAAOA","file":"../main.js","sourcesContent":["define([\r\n    \"./spa\"\r\n], function(spa) {\r\n    return spa;\r\n});\r\n"]}

@@ -1,7 +1,7 @@
 define([
     "skylark-langx/skylark",
     "skylark-langx/langx",
-    "skylark-ajaxfy-routers"
+    "skylark-ajaxify-routers"
 ], function(skylark, langx, routers) {
     var Deferred = langx.Deferred;
 
@@ -343,5 +343,5 @@ define([
 
     });
 
-    return skylark.attach("ajaxfy.spa",spa);
+    return skylark.attach("ajaxify.spa",spa);
 });

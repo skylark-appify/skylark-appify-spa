@@ -1,9 +1,9 @@
 define([
 	"skylarkjs"
 ],function(skylarkjs){
-    var spa = skylarkjs.ajaxfy.spa,
-        noder = skylarkjs.dom.noder,
-        $ = skylarkjs.dom.query;
+    var spa = skylarkjs.ajaxify.spa,
+        noder = skylarkjs.domx.noder,
+        $ = skylarkjs.domx.query;
 
 	return spa.PluginController.inherit({
         klassName: "HighlightController",

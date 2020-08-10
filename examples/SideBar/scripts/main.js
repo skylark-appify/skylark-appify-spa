@@ -1,26 +1,23 @@
 require.config({
-  baseUrl: "./"
+  baseUrl: "/examples/SideBar/"
   ,packages : [
   ]
   , paths: {
     "text" : "https://cdnjs.cloudflare.com/ajax/libs/require-text/2.0.12/text",
-    "skylark-ajaxfy-spa" : "../../dist/uncompressed/skylark-ajaxfy-spa-all",
-     "skylark-utils-dom" : "../../node_modules/skylark-utils-dom/dist/uncompressed//skylark-utils-dom" ,
+    "skylark-ajaxify-spa" : "../../dist/uncompressed/skylark-ajaxify-spa",
+    "skylark-ajaxify-routers" : "../../node_modules/skylark-ajaxify-routers/dist/uncompressed//skylark-ajaxify-routers",
+    "skylark-domx" : "../../node_modules/skylark-domx/dist/uncompressed//skylark-domx-all" ,
   }
   , map: {
-     '*': {skylarkjs: "skylark-ajaxfy-spa"},
-  }
-  , shim: {
-    'skylark-utils-dom': {
-      deps: ['skylarkjs']
-    }
+     '*': {skylarkjs: "skylark-langx/skylark"},
   }
 });
 
-require(["skylark-ajaxfy-spa"],function(skylark) {
+require(["skylark-domx"],function() {
 
-  require(["scripts/config","skylark-utils-dom"], function (config) {
-    var app = skylark.ajaxfy.spa(config);
+require(["skylark-ajaxify-routers"],function() {
+  require(["skylark-langx/skylark","scripts/config","skylark-ajaxify-spa"], function (skylark,config,spa) {
+    var app = spa(config);
 
     window.go =  function(path) {
        app.go(path);
@@ -31,6 +28,6 @@ require(["skylark-ajaxfy-spa"],function(skylark) {
     })
 
   });
+ });
 
-});
-
+ });

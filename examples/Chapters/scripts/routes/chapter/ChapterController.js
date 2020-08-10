@@ -4,9 +4,9 @@ define([
     "text!./templates/chapter2.html",
     "text!./templates/chapter3.html"
 ],function(skylarkjs,tpl1,tpl2,tpl3){
-    var spa = skylarkjs.ajaxfy.spa,
-        noder = skylarkjs.dom.noder,
-        $ = skylarkjs.dom.query;
+    var spa = skylarkjs.ajaxify.spa,
+        noder = skylarkjs.domx.noder,
+        $ = skylarkjs.domx.query;
         
 	return spa.RouteController.inherit({
         klassName: "ChapterController",
