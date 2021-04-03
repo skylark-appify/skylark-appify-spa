@@ -525,17 +525,16 @@ define('skylark-langx-types/main',[
 define('skylark-langx-types', ['skylark-langx-types/main'], function (main) { return main; });
 
 define('skylark-langx-objects/objects',[
-    "skylark-langx-ns/ns",
-    "skylark-langx-ns/_attach",
-	"skylark-langx-types"
-],function(skylark,_attach,types){
-	var hasOwnProperty = Object.prototype.hasOwnProperty,
+    "skylark-langx-ns",
+    "skylark-langx-types"
+],function(skylark,types){
+    var hasOwnProperty = Object.prototype.hasOwnProperty,
         slice = Array.prototype.slice,
         isBoolean = types.isBoolean,
         isFunction = types.isFunction,
-		isObject = types.isObject,
-		isPlainObject = types.isPlainObject,
-		isArray = types.isArray,
+        isObject = types.isObject,
+        isPlainObject = types.isPlainObject,
+        isArray = types.isArray,
         isArrayLike = types.isArrayLike,
         isString = types.isString,
         toInteger = types.toInteger;
@@ -559,112 +558,6 @@ define('skylark-langx-objects/objects',[
        };
     }
 
-    // Internal recursive comparison function for `isEqual`.
-    var eq, deepEq;
-    var SymbolProto = typeof Symbol !== 'undefined' ? Symbol.prototype : null;
-
-    eq = function(a, b, aStack, bStack) {
-        // Identical objects are equal. `0 === -0`, but they aren't identical.
-        // See the [Harmony `egal` proposal](http://wiki.ecmascript.org/doku.php?id=harmony:egal).
-        if (a === b) return a !== 0 || 1 / a === 1 / b;
-        // `null` or `undefined` only equal to itself (strict comparison).
-        if (a == null || b == null) return false;
-        // `NaN`s are equivalent, but non-reflexive.
-        if (a !== a) return b !== b;
-        // Exhaust primitive checks
-        var type = typeof a;
-        if (type !== 'function' && type !== 'object' && typeof b != 'object') return false;
-        return deepEq(a, b, aStack, bStack);
-    };
-
-    // Internal recursive comparison function for `isEqual`.
-    deepEq = function(a, b, aStack, bStack) {
-        // Unwrap any wrapped objects.
-        //if (a instanceof _) a = a._wrapped;
-        //if (b instanceof _) b = b._wrapped;
-        // Compare `[[Class]]` names.
-        var className = toString.call(a);
-        if (className !== toString.call(b)) return false;
-        switch (className) {
-            // Strings, numbers, regular expressions, dates, and booleans are compared by value.
-            case '[object RegExp]':
-            // RegExps are coerced to strings for comparison (Note: '' + /a/i === '/a/i')
-            case '[object String]':
-                // Primitives and their corresponding object wrappers are equivalent; thus, `"5"` is
-                // equivalent to `new String("5")`.
-                return '' + a === '' + b;
-            case '[object Number]':
-                // `NaN`s are equivalent, but non-reflexive.
-                // Object(NaN) is equivalent to NaN.
-                if (+a !== +a) return +b !== +b;
-                // An `egal` comparison is performed for other numeric values.
-                return +a === 0 ? 1 / +a === 1 / b : +a === +b;
-            case '[object Date]':
-            case '[object Boolean]':
-                // Coerce dates and booleans to numeric primitive values. Dates are compared by their
-                // millisecond representations. Note that invalid dates with millisecond representations
-                // of `NaN` are not equivalent.
-                return +a === +b;
-            case '[object Symbol]':
-                return SymbolProto.valueOf.call(a) === SymbolProto.valueOf.call(b);
-        }
-
-        var areArrays = className === '[object Array]';
-        if (!areArrays) {
-            if (typeof a != 'object' || typeof b != 'object') return false;
-            // Objects with different constructors are not equivalent, but `Object`s or `Array`s
-            // from different frames are.
-            var aCtor = a.constructor, bCtor = b.constructor;
-            if (aCtor !== bCtor && !(isFunction(aCtor) && aCtor instanceof aCtor &&
-                               isFunction(bCtor) && bCtor instanceof bCtor)
-                          && ('constructor' in a && 'constructor' in b)) {
-                return false;
-            }
-        }
-        // Assume equality for cyclic structures. The algorithm for detecting cyclic
-        // structures is adapted from ES 5.1 section 15.12.3, abstract operation `JO`.
-
-        // Initializing stack of traversed objects.
-        // It's done here since we only need them for objects and arrays comparison.
-        aStack = aStack || [];
-        bStack = bStack || [];
-        var length = aStack.length;
-        while (length--) {
-            // Linear search. Performance is inversely proportional to the number of
-            // unique nested structures.
-            if (aStack[length] === a) return bStack[length] === b;
-        }
-
-        // Add the first object to the stack of traversed objects.
-        aStack.push(a);
-        bStack.push(b);
-
-        // Recursively compare objects and arrays.
-        if (areArrays) {
-            // Compare array lengths to determine if a deep comparison is necessary.
-            length = a.length;
-            if (length !== b.length) return false;
-            // Deep compare the contents, ignoring non-numeric properties.
-            while (length--) {
-                if (!eq(a[length], b[length], aStack, bStack)) return false;
-            }
-        } else {
-            // Deep compare objects.
-            var keys = Object.keys(a), key;
-            length = keys.length;
-            // Ensure that both objects contain the same number of properties before comparing deep equality.
-            if (Object.keys(b).length !== length) return false;
-            while (length--) {
-                // Deep compare each member
-                key = keys[length];
-                if (!(b[key]!==undefined && eq(a[key], b[key], aStack, bStack))) return false;
-            }
-        }
-        // Remove the first object from the stack of traversed objects.
-        aStack.pop();
-        bStack.pop();
-        return true;
-    };
 
     // Retrieve all the property names of an object.
     function allKeys(obj) {
@@ -788,11 +681,6 @@ define('skylark-langx-objects/objects',[
     }
 
 
-   // Perform a deep comparison to check if two objects are equal.
-    function isEqual(a, b) {
-        return eq(a, b);
-    }
-
     // Returns whether an object has a given set of `key:value` pairs.
     function isMatch(object, attrs) {
         var keys = keys(attrs), length = keys.length;
@@ -903,25 +791,6 @@ define('skylark-langx-objects/objects',[
         return this;
     }
 
-    function result(obj, path, fallback) {
-        if (!isArray(path)) {
-            path = path.split(".");//[path]
-        };
-        var length = path.length;
-        if (!length) {
-          return isFunction(fallback) ? fallback.call(obj) : fallback;
-        }
-        for (var i = 0; i < length; i++) {
-          var prop = obj == null ? void 0 : obj[path[i]];
-          if (prop === void 0) {
-            prop = fallback;
-            i = length; // Ensure we don't continue iterating.
-          }
-          obj = isFunction(prop) ? prop.call(obj) : prop;
-        }
-
-        return obj;
-    }
 
     function safeMixin() {
         var args = _parseMixinArgs.apply(this, arguments);
@@ -967,10 +836,18 @@ define('skylark-langx-objects/objects',[
 
     }
 
+    function scall(obj,method,arg1,arg2) {
+        if (obj && obj[method]) {
+            var args = slice.call(arguments, 2);
+
+            return obj[method].apply(obj,args);
+        }
+    }
+
     return skylark.attach("langx.objects",{
         allKeys: allKeys,
 
-        attach : _attach,
+        attach : skylark.attach,
 
         clone: clone,
 
@@ -981,8 +858,6 @@ define('skylark-langx-objects/objects',[
         extend : extend,
 
         has: has,
-
-        isEqual: isEqual,   
 
         includes: includes,
 
@@ -997,31 +872,186 @@ define('skylark-langx-objects/objects',[
         pick: pick,
 
         removeItem: removeItem,
-
-        result : result,
-        
+     
         safeMixin: safeMixin,
+
+        scall,
 
         values: values
     });
 
 
 });
-define('skylark-langx-objects/main',[
+define('skylark-langx-objects/isEqual',[
+	"skylark-langx-types",
 	"./objects"
+],function(types,objects) {
+    var isFunction = types.isFunction;
+
+
+    // Internal recursive comparison function for `isEqual`.
+    var eq, deepEq;
+    var SymbolProto = typeof Symbol !== 'undefined' ? Symbol.prototype : null;
+
+    eq = function(a, b, aStack, bStack) {
+        // Identical objects are equal. `0 === -0`, but they aren't identical.
+        // See the [Harmony `egal` proposal](http://wiki.ecmascript.org/doku.php?id=harmony:egal).
+        if (a === b) return a !== 0 || 1 / a === 1 / b;
+        // `null` or `undefined` only equal to itself (strict comparison).
+        if (a == null || b == null) return false;
+        // `NaN`s are equivalent, but non-reflexive.
+        if (a !== a) return b !== b;
+        // Exhaust primitive checks
+        var type = typeof a;
+        if (type !== 'function' && type !== 'object' && typeof b != 'object') return false;
+        return deepEq(a, b, aStack, bStack);
+    };
+
+    // Internal recursive comparison function for `isEqual`.
+    deepEq = function(a, b, aStack, bStack) {
+        // Unwrap any wrapped objects.
+        //if (a instanceof _) a = a._wrapped;
+        //if (b instanceof _) b = b._wrapped;
+        // Compare `[[Class]]` names.
+        var className = toString.call(a);
+        if (className !== toString.call(b)) return false;
+        switch (className) {
+            // Strings, numbers, regular expressions, dates, and booleans are compared by value.
+            case '[object RegExp]':
+            // RegExps are coerced to strings for comparison (Note: '' + /a/i === '/a/i')
+            case '[object String]':
+                // Primitives and their corresponding object wrappers are equivalent; thus, `"5"` is
+                // equivalent to `new String("5")`.
+                return '' + a === '' + b;
+            case '[object Number]':
+                // `NaN`s are equivalent, but non-reflexive.
+                // Object(NaN) is equivalent to NaN.
+                if (+a !== +a) return +b !== +b;
+                // An `egal` comparison is performed for other numeric values.
+                return +a === 0 ? 1 / +a === 1 / b : +a === +b;
+            case '[object Date]':
+            case '[object Boolean]':
+                // Coerce dates and booleans to numeric primitive values. Dates are compared by their
+                // millisecond representations. Note that invalid dates with millisecond representations
+                // of `NaN` are not equivalent.
+                return +a === +b;
+            case '[object Symbol]':
+                return SymbolProto.valueOf.call(a) === SymbolProto.valueOf.call(b);
+        }
+
+        var areArrays = className === '[object Array]';
+        if (!areArrays) {
+            if (typeof a != 'object' || typeof b != 'object') return false;
+            // Objects with different constructors are not equivalent, but `Object`s or `Array`s
+            // from different frames are.
+            var aCtor = a.constructor, bCtor = b.constructor;
+            if (aCtor !== bCtor && !(isFunction(aCtor) && aCtor instanceof aCtor &&
+                               isFunction(bCtor) && bCtor instanceof bCtor)
+                          && ('constructor' in a && 'constructor' in b)) {
+                return false;
+            }
+        }
+        // Assume equality for cyclic structures. The algorithm for detecting cyclic
+        // structures is adapted from ES 5.1 section 15.12.3, abstract operation `JO`.
+
+        // Initializing stack of traversed objects.
+        // It's done here since we only need them for objects and arrays comparison.
+        aStack = aStack || [];
+        bStack = bStack || [];
+        var length = aStack.length;
+        while (length--) {
+            // Linear search. Performance is inversely proportional to the number of
+            // unique nested structures.
+            if (aStack[length] === a) return bStack[length] === b;
+        }
+
+        // Add the first object to the stack of traversed objects.
+        aStack.push(a);
+        bStack.push(b);
+
+        // Recursively compare objects and arrays.
+        if (areArrays) {
+            // Compare array lengths to determine if a deep comparison is necessary.
+            length = a.length;
+            if (length !== b.length) return false;
+            // Deep compare the contents, ignoring non-numeric properties.
+            while (length--) {
+                if (!eq(a[length], b[length], aStack, bStack)) return false;
+            }
+        } else {
+            // Deep compare objects.
+            var keys = Object.keys(a), key;
+            length = keys.length;
+            // Ensure that both objects contain the same number of properties before comparing deep equality.
+            if (Object.keys(b).length !== length) return false;
+            while (length--) {
+                // Deep compare each member
+                key = keys[length];
+                if (!(b[key]!==undefined && eq(a[key], b[key], aStack, bStack))) return false;
+            }
+        }
+        // Remove the first object from the stack of traversed objects.
+        aStack.pop();
+        bStack.pop();
+        return true;
+    };
+
+
+   // Perform a deep comparison to check if two objects are equal.
+    function isEqual(a, b) {
+        return eq(a, b);
+    }
+
+    return objects.isEqual = isEqual;
+	
+});
+define('skylark-langx-objects/result',[
+	"skylark-langx-types",
+	"./objects"
+],function(types,objects) {
+	var isArray = types.isArray,
+		isFunction = types.isFunction;
+
+    function result(obj, path, fallback) {
+        if (!isArray(path)) {
+            path = path.split(".");//[path]
+        };
+        var length = path.length;
+        if (!length) {
+          return isFunction(fallback) ? fallback.call(obj) : fallback;
+        }
+        for (var i = 0; i < length; i++) {
+          var prop = obj == null ? void 0 : obj[path[i]];
+          if (prop === void 0) {
+            prop = fallback;
+            i = length; // Ensure we don't continue iterating.
+          }
+          obj = isFunction(prop) ? prop.call(obj) : prop;
+        }
+
+        return obj;
+    }
+
+    return objects.result = result;
+	
+});
+define('skylark-langx-objects/main',[
+	"./objects",
+	"./isEqual",
+	"./result"
 ],function(objects){
 	return objects;
 });
 define('skylark-langx-objects', ['skylark-langx-objects/main'], function (main) { return main; });
 
 define('skylark-langx-arrays/arrays',[
-  "skylark-langx-ns/ns",
+  "skylark-langx-ns",
   "skylark-langx-types",
   "skylark-langx-objects"
 ],function(skylark,types,objects){
-  var filter = Array.prototype.filter,
-      find = Array.prototype.find,
-    isArrayLike = types.isArrayLike;
+    var filter = Array.prototype.filter,
+        find = Array.prototype.find,
+        isArrayLike = types.isArrayLike;
 
     /**
      * The base implementation of `_.findIndex` and `_.findLastIndex` without
@@ -1233,7 +1263,9 @@ define('skylark-langx-arrays/arrays',[
 
         inArray: inArray,
 
-        makeArray: makeArray,
+        makeArray: makeArray, // 
+
+        toArray : makeArray,
 
         merge : merge,
 
@@ -1259,12 +1291,50 @@ define('skylark-langx/arrays',[
 ],function(arrays){
   return arrays;
 });
-define('skylark-langx-klass/klass',[
-  "skylark-langx-ns/ns",
+define('skylark-langx-constructs/constructs',[
+  "skylark-langx-ns"
+],function(skylark){
+
+    return skylark.attach("langx.constructs",{});
+});
+define('skylark-langx-constructs/inherit',[
+	"./constructs"
+],function(constructs){
+
+    function inherit(ctor,base) {
+        ///var f = function() {};
+        ///f.prototype = base.prototype;
+        ///
+        ///ctor.prototype = new f();
+
+	    if ((typeof base !== "function") && base) {
+	      throw new TypeError("Super expression must either be null or a function");
+	    }
+
+	    ctor.prototype = Object.create(base && base.prototype, {
+	      constructor: {
+	        value: ctor,
+	        writable: true,
+	        configurable: true
+	      }
+	    });
+
+	    if (base) {
+	    	//tor.__proto__ = base;
+	    	Object.setPrototypeOf(ctor, base);
+	    } 
+    }
+
+    return constructs.inherit = inherit
+});
+define('skylark-langx-constructs/klass',[
+  "skylark-langx-ns",
   "skylark-langx-types",
   "skylark-langx-objects",
   "skylark-langx-arrays",
-],function(skylark,types,objects,arrays){
+  "./constructs",
+  "./inherit"
+],function(skylark,types,objects,arrays,constructs,inherit){
     var uniq = arrays.uniq,
         has = objects.has,
         mixin = objects.mixin,
@@ -1317,12 +1387,7 @@ let longEar = klass({
 },rabbit);
 */
     
-    function inherit(ctor, base) {
-        var f = function() {};
-        f.prototype = base.prototype;
 
-        ctor.prototype = new f();
-    }
 
     var f1 = function() {
         function extendClass(ctor, props, options) {
@@ -1415,8 +1480,10 @@ let longEar = klass({
             var newCtor =ctor;
             for (var i=0;i<mixins.length;i++) {
                 var xtor = new Function();
-                xtor.prototype = Object.create(newCtor.prototype);
-                xtor.__proto__ = newCtor;
+
+                inherit(xtor,newCtor)
+                //xtor.prototype = Object.create(newCtor.prototype);
+                //xtor.__proto__ = newCtor;
                 xtor.superclass = null;
                 mixin(xtor.prototype,mixins[i].prototype);
                 xtor.prototype.__mixin__ = mixins[i];
@@ -1471,15 +1538,17 @@ let longEar = klass({
 
 
             // Populate our constructed prototype object
-            ctor.prototype = Object.create(innerParent.prototype);
+            ///ctor.prototype = Object.create(innerParent.prototype);
 
             // Enforce the constructor to be what we expect
-            ctor.prototype.constructor = ctor;
-            ctor.superclass = parent;
-
+            ///ctor.prototype.constructor = ctor;
+  
             // And make this class extendable
-            ctor.__proto__ = innerParent;
+            ///ctor.__proto__ = innerParent;
 
+            inherit(ctor,innerParent);
+
+            ctor.superclass = parent;
 
             if (!ctor._constructor) {
                 ctor._constructor = _constructor;
@@ -1508,7 +1577,15 @@ let longEar = klass({
 
     var createClass = f1();
 
-    return skylark.attach("langx.klass",createClass);
+    return constructs.klass = createClass;
+});
+define('skylark-langx-klass/klass',[
+  "skylark-langx-ns",
+  "skylark-langx-constructs/klass"
+],function(skylark,klass){
+
+
+    return skylark.attach("langx.klass",klass);
 });
 define('skylark-langx-klass/main',[
 	"./klass"
@@ -2005,7 +2082,7 @@ define('skylark-langx/aspect',[
   return aspect;
 });
 define('skylark-langx-funcs/funcs',[
-  "skylark-langx-ns/ns",
+  "skylark-langx-ns",
 ],function(skylark,types,objects){
         
 
@@ -2030,39 +2107,79 @@ define('skylark-langx-funcs/funcs',[
 
     });
 });
-define('skylark-langx-funcs/debounce',[
-	"./funcs"
+define('skylark-langx-funcs/defer',[
+    "./funcs"
 ],function(funcs){
+    function defer(fn,args,context) {
+        var ret = {
+            stop : null
+        },
+        id,
+        fn1 = fn;
+
+        if (args) {
+            fn1 = function() {
+                fn.apply(context,args);
+            };
+        }
+        if (requestAnimationFrame) {
+            id = requestAnimationFrame(fn1);
+            ret.stop = function() {
+                return cancelAnimationFrame(id);
+            };
+        } else {
+            id = setTimeoutout(fn1);
+            ret.stop = function() {
+                return clearTimeout(id);
+            };
+        }
+        return ret;
+    }
+
+    return funcs.defer = defer;
+});
+define('skylark-langx-funcs/debounce',[
+	"./funcs",
+    "./defer"
+],function(funcs,defer){
    
-    function debounce(fn, wait) {
-        var timeout;
+    function debounce(fn, wait,useAnimationFrame) {
+        var timeout,
+            defered;
+
         return function () {
             var context = this, args = arguments;
             var later = function () {
                 timeout = null;
-                fn.apply(context, args);
+                if (useAnimationFrame) {
+                    defered = defer(fn,args,context);
+                } else {
+                    fn.apply(context, args);
+                }
             };
-            if (timeout) clearTimeout(timeout);
+
+            function stop() {
+                if (timeout) {
+                    clearTimeout(timeout);
+                }
+                if (defered) {
+                    defered.stop();
+                }
+                timeout = void 0;
+                defered = void 0;
+            }
+
+            stop();
             timeout = setTimeout(later, wait);
+
+            return {
+                stop 
+            };
         };
     }
 
     return funcs.debounce = debounce;
 
-});
-define('skylark-langx-funcs/defer',[
-	"./funcs"
-],function(funcs){
-	function defer(fn) {
-        if (requestAnimationFrame) {
-            requestAnimationFrame(fn);
-        } else {
-            setTimeoutout(fn);
-        }
-        return this;
-    }
-
-    return funcs.defer = defer;
 });
 define('skylark-langx-funcs/delegate',[
   "skylark-langx-objects",
@@ -2218,8 +2335,10 @@ define('skylark-langx-funcs/proxy',[
 
 });
 define('skylark-langx-funcs/template',[
-	"./funcs"
-],function(funcs){
+  "skylark-langx-objects",
+  "./funcs",
+  "./proxy"
+],function(objects,funcs,proxy){
     var slice = Array.prototype.slice;
 
    
@@ -2317,6 +2436,24 @@ define('skylark-langx-funcs/template',[
     return funcs.template = template;
 
 });
+define('skylark-langx-funcs/throttle',[
+  "./funcs"
+],function(funcs){
+
+    const throttle = function (fn, wait) {
+        let last = window.performance.now();
+        const throttled = function (...args) {
+            const now = window.performance.now();
+            if (now - last >= wait) {
+                fn(...args);
+                last = now;
+            }
+        };
+        return throttled;
+    };
+
+    return funcs.throttle = throttle;
+});
 define('skylark-langx-funcs/main',[
 	"./funcs",
 	"./debounce",
@@ -2325,7 +2462,8 @@ define('skylark-langx-funcs/main',[
 	"./loop",
 	"./negate",
 	"./proxy",
-	"./template"
+	"./template",
+	"./throttle"
 ],function(funcs){
 	return funcs;
 });
@@ -2688,7 +2826,7 @@ define('skylark-langx/async',[
     return async;
 });
 define('skylark-langx-binary/binary',[
-  "skylark-langx-ns/ns",
+  "skylark-langx-ns",
 ],function(skylark){
 	"use strict";
 
@@ -2789,6 +2927,20 @@ define('skylark-langx/binary',[
 ],function(binary){
   return binary;
 });
+define('skylark-langx-constructs/main',[
+	"./constructs",
+	"./inherit",
+	"./klass"
+],function(constructs){
+	return constructs;
+});
+define('skylark-langx-constructs', ['skylark-langx-constructs/main'], function (main) { return main; });
+
+define('skylark-langx/constructs',[
+	"skylark-langx-constructs"
+],function(constructs){
+  return constructs;
+});
 define('skylark-langx-datetimes/datetimes',[
     "skylark-langx-ns"
 ],function(skylark){
@@ -2867,9 +3019,9 @@ define('skylark-langx/datetimes',[
     return datetimes;
 });
 define('skylark-langx/Deferred',[
-    "skylark-langx-async/Deferred"
-],function(Deferred){
-    return Deferred;
+    "skylark-langx-async"
+],function(async){
+    return async.Deferred;
 });
 define('skylark-langx-events/events',[
 	"skylark-langx-ns"
@@ -2927,18 +3079,16 @@ define('skylark-langx-hoster/hoster',[
 			this.props = props;
 		};
 	}
-	Object.defineProperty(hoster,"document",function(){
-		if (!_document) {
-			var w = typeof window === 'undefined' ? require('html-element') : window;
-			_document = w.document;
-		}
-
-		return _document;
-	});
 
 	if (hoster.isBrowser) {
 	    function uaMatch( ua ) {
 		    ua = ua.toLowerCase();
+
+			//IE11OrLess = !!navigator.userAgent.match(/(?:Trident.*rv[ :]?11\.|msie|iemobile)/i),
+			//Edge = !!navigator.userAgent.match(/Edge/i),
+			//FireFox = !!navigator.userAgent.match(/firefox/i),
+			//Safari = !!(navigator.userAgent.match(/safari/i) && !navigator.userAgent.match(/chrome/i) && !navigator.userAgent.match(/android/i)),
+			//IOS = !!(navigator.userAgent.match(/iP(ad|od|hone)/i)),
 
 		    var match = /(chrome)[ \/]([\w.]+)/.exec( ua ) ||
 		      /(webkit)[ \/]([\w.]+)/.exec( ua ) ||
@@ -2970,10 +3120,158 @@ define('skylark-langx-hoster/hoster',[
 	    }
 	}
 
+	hoster.detects = {};
+
 	return  skylark.attach("langx.hoster",hoster);
 });
+define('skylark-langx-hoster/detects/mobile',[
+    "../hoster"
+],function(hoster){
+    //refer : https://github.com/kaimallea/isMobile
+
+    var appleIphone = /iPhone/i;
+    var appleIpod = /iPod/i;
+    var appleTablet = /iPad/i;
+    var appleUniversal = /\biOS-universal(?:.+)Mac\b/i;
+    var androidPhone = /\bAndroid(?:.+)Mobile\b/i;
+    var androidTablet = /Android/i;
+    var amazonPhone = /(?:SD4930UR|\bSilk(?:.+)Mobile\b)/i;
+    var amazonTablet = /Silk/i;
+    var windowsPhone = /Windows Phone/i;
+    var windowsTablet = /\bWindows(?:.+)ARM\b/i;
+    var otherBlackBerry = /BlackBerry/i;
+    var otherBlackBerry10 = /BB10/i;
+    var otherOpera = /Opera Mini/i;
+    var otherChrome = /\b(CriOS|Chrome)(?:.+)Mobile/i;
+    var otherFirefox = /Mobile(?:.+)Firefox\b/i;
+    var isAppleTabletOnIos13 = function (navigator) {
+        return (typeof navigator !== 'undefined' &&
+            navigator.platform === 'MacIntel' &&
+            typeof navigator.maxTouchPoints === 'number' &&
+            navigator.maxTouchPoints > 1 &&
+            typeof MSStream === 'undefined');
+    };
+    function createMatch(userAgent) {
+        return function (regex) { return regex.test(userAgent); };
+    }
+    
+    function detectMobile(param) {
+        var nav = {
+            userAgent: '',
+            platform: '',
+            maxTouchPoints: 0
+        };
+        if (!param && typeof navigator !== 'undefined') {
+            nav = {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                maxTouchPoints: navigator.maxTouchPoints || 0
+            };
+        }
+        else if (typeof param === 'string') {
+            nav.userAgent = param;
+        }
+        else if (param && param.userAgent) {
+            nav = {
+                userAgent: param.userAgent,
+                platform: param.platform,
+                maxTouchPoints: param.maxTouchPoints || 0
+            };
+        }
+        var userAgent = nav.userAgent;
+        var tmp = userAgent.split('[FBAN');
+        if (typeof tmp[1] !== 'undefined') {
+            userAgent = tmp[0];
+        }
+        tmp = userAgent.split('Twitter');
+        if (typeof tmp[1] !== 'undefined') {
+            userAgent = tmp[0];
+        }
+        var match = createMatch(userAgent);
+        var result = {
+            apple: {
+                phone: match(appleIphone) && !match(windowsPhone),
+                ipod: match(appleIpod),
+                tablet: !match(appleIphone) &&
+                    (match(appleTablet) || isAppleTabletOnIos13(nav)) &&
+                    !match(windowsPhone),
+                universal: match(appleUniversal),
+                device: (match(appleIphone) ||
+                    match(appleIpod) ||
+                    match(appleTablet) ||
+                    match(appleUniversal) ||
+                    isAppleTabletOnIos13(nav)) &&
+                    !match(windowsPhone)
+            },
+            amazon: {
+                phone: match(amazonPhone),
+                tablet: !match(amazonPhone) && match(amazonTablet),
+                device: match(amazonPhone) || match(amazonTablet)
+            },
+            android: {
+                phone: (!match(windowsPhone) && match(amazonPhone)) ||
+                    (!match(windowsPhone) && match(androidPhone)),
+                tablet: !match(windowsPhone) &&
+                    !match(amazonPhone) &&
+                    !match(androidPhone) &&
+                    (match(amazonTablet) || match(androidTablet)),
+                device: (!match(windowsPhone) &&
+                    (match(amazonPhone) ||
+                        match(amazonTablet) ||
+                        match(androidPhone) ||
+                        match(androidTablet))) ||
+                    match(/\bokhttp\b/i)
+            },
+            windows: {
+                phone: match(windowsPhone),
+                tablet: match(windowsTablet),
+                device: match(windowsPhone) || match(windowsTablet)
+            },
+            other: {
+                blackberry: match(otherBlackBerry),
+                blackberry10: match(otherBlackBerry10),
+                opera: match(otherOpera),
+                firefox: match(otherFirefox),
+                chrome: match(otherChrome),
+                device: match(otherBlackBerry) ||
+                    match(otherBlackBerry10) ||
+                    match(otherOpera) ||
+                    match(otherFirefox) ||
+                    match(otherChrome)
+            },
+            any: false,
+            phone: false,
+            tablet: false
+        };
+        result.any =
+            result.apple.device ||
+                result.android.device ||
+                result.windows.device ||
+                result.other.device;
+        result.phone =
+            result.apple.phone || result.android.phone || result.windows.phone;
+        result.tablet =
+            result.apple.tablet || result.android.tablet || result.windows.tablet;
+        return result;
+    }
+
+    return hoster.detects.mobile = detectMobile;
+});
+
+define('skylark-langx-hoster/isMobile',[
+    "./hoster",
+    "./detects/mobile"
+],function(hoster,detectMobile){
+    if (hoster.isMobile == undefined) {
+        hoster.isMobile = detectMobile();
+    }
+
+    return hoster.isMobile;
+});
+
 define('skylark-langx-hoster/main',[
-	"./hoster"
+	"./hoster",
+	"./isMobile"
 ],function(hoster){
 	return hoster;
 });
@@ -2983,8 +3281,9 @@ define('skylark-langx-events/Event',[
   "skylark-langx-objects",
   "skylark-langx-funcs",
   "skylark-langx-klass",
-  "skylark-langx-hoster"
-],function(objects,funcs,klass){
+  "skylark-langx-hoster",
+    "./events"
+],function(objects,funcs,klass,events){
     var eventMethods = {
         preventDefault: "isDefaultPrevented",
         stopImmediatePropagation: "isImmediatePropagationStopped",
@@ -3032,7 +3331,7 @@ define('skylark-langx-events/Event',[
 
     Event.compatible = compatible;
 
-    return Event;
+    return events.Event = Event;
     
 });
 define('skylark-langx-events/Listener',[
@@ -3207,6 +3506,15 @@ define('skylark-langx-events/Emitter',[
     }
 
     var Emitter = Listener.inherit({
+        _prepareArgs : function(e,args) {
+            if (isDefined(args)) {
+                args = [e].concat(args);
+            } else {
+                args = [e];
+            }
+            return args;
+        },
+
         on: function(events, selector, data, callback, ctx, /*used internally*/ one) {
             var self = this,
                 _hub = this._hub || (this._hub = {});
@@ -3280,11 +3588,9 @@ define('skylark-langx-events/Emitter',[
             });
 
             var args = slice.call(arguments, 1);
-            if (isDefined(args)) {
-                args = [e].concat(args);
-            } else {
-                args = [e];
-            }
+
+            args = this._prepareArgs(e,args);
+
             [e.type || e.name, "all"].forEach(function(eventName) {
                 var parsed = parse(eventName),
                     name = parsed.name,
@@ -3384,16 +3690,6 @@ define('skylark-langx-events/Emitter',[
     return events.Emitter = Emitter;
 
 });
-define('skylark-langx/Emitter',[
-    "skylark-langx-events/Emitter"
-],function(Emitter){
-    return Emitter;
-});
-define('skylark-langx/Evented',[
-    "./Emitter"
-],function(Emitter){
-    return Emitter;
-});
 define('skylark-langx-events/createEvent',[
 	"./events",
 	"./Event"
@@ -3417,6 +3713,16 @@ define('skylark-langx-events/main',[
 });
 define('skylark-langx-events', ['skylark-langx-events/main'], function (main) { return main; });
 
+define('skylark-langx/Emitter',[
+    "skylark-langx-events"
+],function(events){
+    return events.Emitter;
+});
+define('skylark-langx/Evented',[
+    "./Emitter"
+],function(Emitter){
+    return Emitter;
+});
 define('skylark-langx/events',[
 	"skylark-langx-events"
 ],function(events){
@@ -3426,6 +3732,86 @@ define('skylark-langx/funcs',[
     "skylark-langx-funcs"
 ],function(funcs){
     return funcs;
+});
+define('skylark-langx-globals/globals',[
+	"skylark-langx-ns"
+],function(ns) {
+	var globals = (function(){
+		if (typeof global !== 'undefined' && typeof global !== 'function') {
+			// global spec defines a reference to the global object called 'global'
+			// https://github.com/tc39/proposal-global
+			// `global` is also defined in NodeJS
+			return global;
+		} else if (typeof window !== 'undefined') {
+			// window is defined in browsers
+			return window;
+		}
+		else if (typeof self !== 'undefined') {
+			// self is defined in WebWorkers
+			return self;
+		}
+		return this;
+	})();
+
+	return ns.attach("langx.globals",globals);
+
+});
+define('skylark-langx-globals/console',[
+	"./globals"
+], function(globals) {
+	return globals.console = console;
+});
+define('skylark-langx-globals/document',[
+	"./globals"
+], function(globals) {
+	var topLevel = typeof global !== 'undefined' ? global :
+	    typeof window !== 'undefined' ? window : {};
+
+	var doccy;
+
+	if (typeof document !== 'undefined') {
+	    doccy = document;
+	} else {
+        doccy  = require('min-document');
+	}
+
+
+	return globals.document = doccy;
+});
+
+
+
+
+define('skylark-langx-globals/window',[
+	"./globals"
+], function(globals) {
+
+	var win = (function() {
+		if (typeof window !== "undefined") {
+		    return window;
+		} else {
+		    return {};
+		}
+	})();
+
+	return globals.window = win;
+});
+
+define('skylark-langx-globals/main',[
+	"./globals",
+	"./console",
+	"./document",
+	"./window"
+],function(globals){
+
+	return globals;
+});
+define('skylark-langx-globals', ['skylark-langx-globals/main'], function (main) { return main; });
+
+define('skylark-langx/globals',[
+    "skylark-langx-globals"
+],function(globals){
+    return globals;
 });
 define('skylark-langx/hoster',[
 	"skylark-langx-hoster"
@@ -3534,13 +3920,13 @@ define('skylark-langx-maths/maths',[
 
 		degToRad: function ( degrees ) {
 
-			return degrees * MathUtils.DEG2RAD;
+			return degrees * maths.DEG2RAD;
 
 		},
 
 		radToDeg: function ( radians ) {
 
-			return radians * MathUtils.RAD2DEG;
+			return radians * maths.RAD2DEG;
 
 		},
 
@@ -10006,21 +10392,11 @@ define('skylark-langx/Stateful',[
 
 	return Stateful;
 });
-define('skylark-langx-emitter/Emitter',[
-    "skylark-langx-events/Emitter"
-],function(Emitter){
-    return Emitter;
-});
-define('skylark-langx-emitter/Evented',[
-	"./Emitter"
-],function(Emitter){
-	return Emitter;
-});
 define('skylark-langx-topic/topic',[
 	"skylark-langx-ns",
-	"skylark-langx-emitter/Evented"
-],function(skylark,Evented){
-	var hub = new Evented();
+	"skylark-langx-events"
+],function(skylark,events){
+	var hub = new events.Emitter();
 
 	return skylark.attach("langx.topic",{
 	    publish: function(name, arg1,argn) {
@@ -10071,12 +10447,14 @@ define('skylark-langx/langx',[
     "./aspect",
     "./async",
     "./binary",
+    "./constructs",
     "./datetimes",
     "./Deferred",
     "./Emitter",
     "./Evented",
     "./events",
     "./funcs",
+    "./globals",
     "./hoster",
     "./klass",
     "./maths",
@@ -10093,12 +10471,14 @@ define('skylark-langx/langx',[
     aspect,
     async,
     binary,
+    constructs,
     datetimes,
     Deferred,
     Emitter,
     Evented,
     events,
     funcs,
+    globals,
     hoster,
     klass,
     maths,
