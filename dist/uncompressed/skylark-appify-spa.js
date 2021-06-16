@@ -1,5 +1,5 @@
 /**
- * skylark-ajaxify-spa - An Elegant  HTML5 Single Page Application Framework.
+ * skylark-appify-spa - An Elegant  HTML5 Single Page Application Framework.
  * @author Hudaokeji Co.,Ltd
  * @version v0.9.5
  * @link www.skylarkjs.org
@@ -86,10 +86,10 @@
 
 })(function(define,require) {
 
-define('skylark-ajaxify-spa/spa',[
+define('skylark-appify-spa/spa',[
     "skylark-langx/skylark",
     "skylark-langx/langx",
-    "skylark-ajaxify-routers"
+    "skylark-appify-routers"
 ], function(skylark, langx, routers) {
     var Deferred = langx.Deferred;
 
@@ -434,14 +434,14 @@ define('skylark-ajaxify-spa/spa',[
     return skylark.attach("ajaxify.spa",spa);
 });
 
-define('skylark-ajaxify-spa/main',[
+define('skylark-appify-spa/main',[
     "./spa"
 ], function(spa) {
     return spa;
 });
 
-define('skylark-ajaxify-spa', ['skylark-ajaxify-spa/main'], function (main) { return main; });
+define('skylark-appify-spa', ['skylark-appify-spa/main'], function (main) { return main; });
 
 
 },this);
-//# sourceMappingURL=sourcemaps/skylark-ajaxify-spa.js.map
+//# sourceMappingURL=sourcemaps/skylark-appify-spa.js.map

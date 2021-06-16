@@ -1,7 +1,7 @@
 define([
     "skylark-langx/skylark",
     "skylark-langx/langx",
-    "skylark-ajaxify-routers"
+    "skylark-appify-routers"
 ], function(skylark, langx, routers) {
     var Deferred = langx.Deferred;
 

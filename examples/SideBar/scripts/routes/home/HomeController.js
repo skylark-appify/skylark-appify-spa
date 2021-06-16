@@ -1,5 +1,5 @@
 define([
-    "skylark-ajaxify-spa/spa",
+    "skylark-appify-spa/spa",
     "skylark-langx/langx",
     "skylark-domx/query",
     "text!./templates/home.html"

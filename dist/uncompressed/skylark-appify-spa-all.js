@@ -1,5 +1,5 @@
 /**
- * skylark-ajaxify-spa - An Elegant  HTML5 Single Page Application Framework.
+ * skylark-appify-spa - An Elegant  HTML5 Single Page Application Framework.
  * @author Hudaokeji Co.,Ltd
  * @version v0.9.5
  * @link www.skylarkjs.org
@@ -101,7 +101,8 @@ define('skylark-langx-ns/_attach',[],function(){
             name = path[i++];
         }
 
-        return ns[name] = obj2;
+        ns[name] = obj2 || {};
+        return ns[name];
     }
 });
 define('skylark-langx-ns/ns',[
@@ -1172,6 +1173,10 @@ define('skylark-langx-arrays/arrays',[
         return -1;
     }
 
+    function indexOf(array,item) {
+      return array.indexOf(item);
+    }
+
     function makeArray(obj, offset, startWith) {
        if (isArrayLike(obj) ) {
         return (startWith || []).concat(Array.prototype.slice.call(obj, offset || 0));
@@ -1185,6 +1190,10 @@ define('skylark-langx-arrays/arrays',[
     function forEach (arr, fn) {
       if (arr.forEach) return arr.forEach(fn)
       for (var i = 0; i < arr.length; i++) fn(arr[i], i);
+    }
+
+    function last(arr) {
+        return arr[arr.length - 1];     
     }
 
     function map(elements, callback) {
@@ -1263,9 +1272,13 @@ define('skylark-langx-arrays/arrays',[
 
         inArray: inArray,
 
+        indexOf : indexOf,
+
         makeArray: makeArray, // 
 
         toArray : makeArray,
+
+        last : last,
 
         merge : merge,
 
@@ -2108,31 +2121,55 @@ define('skylark-langx-funcs/funcs',[
     });
 });
 define('skylark-langx-funcs/defer',[
+    "skylark-langx-types",
     "./funcs"
-],function(funcs){
-    function defer(fn,args,context) {
+],function(types,funcs){
+
+    function defer(fn,trigger,args,context) {
         var ret = {
-            stop : null
+            cancel : null
         },
-        id,
         fn1 = fn;
+
+        if (!types.isNumber(trigger) && !types.isFunction(trigger)) {
+            context = args;
+            args = trigger;
+            trigger = 0;
+        }
 
         if (args) {
             fn1 = function() {
                 fn.apply(context,args);
             };
         }
-        if (requestAnimationFrame) {
-            id = requestAnimationFrame(fn1);
-            ret.stop = function() {
-                return cancelAnimationFrame(id);
-            };
+
+        if (types.isFunction(trigger)) {
+            var canceled = false;
+            trigger(function(){
+                if (!canceled) {
+                    fn1();
+                }
+            });
+
+            ret.cancel = function() {
+                canceled = true;
+            }
+
         } else {
-            id = setTimeoutout(fn1);
-            ret.stop = function() {
-                return clearTimeout(id);
-            };
+            var  id;
+            if (trigger == 0 && requestAnimationFrame) {
+                id = requestAnimationFrame(fn1);
+                ret.cancel = function() {
+                    return cancelAnimationFrame(id);
+                };
+            } else {
+                id = setTimeout(fn1,trigger);
+                ret.cancel = function() {
+                    return clearTimeout(id);
+                };
+            }            
         }
+
         return ret;
     }
 
@@ -2145,37 +2182,37 @@ define('skylark-langx-funcs/debounce',[
    
     function debounce(fn, wait,useAnimationFrame) {
         var timeout,
-            defered;
+            defered,
+            debounced = function () {
+                var context = this, args = arguments;
+                var later = function () {
+                    timeout = null;
+                    if (useAnimationFrame) {
+                        defered = defer(fn,args,context);
+                    } else {
+                        fn.apply(context, args);
+                    }
+                };
 
-        return function () {
-            var context = this, args = arguments;
-            var later = function () {
-                timeout = null;
-                if (useAnimationFrame) {
-                    defered = defer(fn,args,context);
-                } else {
-                    fn.apply(context, args);
-                }
-            };
+                cancel();
+                timeout = setTimeout(later, wait);
 
-            function stop() {
+                return {
+                    cancel 
+                };
+            },
+            cancel = debounced.cancel = function () {
                 if (timeout) {
                     clearTimeout(timeout);
                 }
                 if (defered) {
-                    defered.stop();
+                    defered.cancel();
                 }
                 timeout = void 0;
                 defered = void 0;
-            }
-
-            stop();
-            timeout = setTimeout(later, wait);
-
-            return {
-                stop 
             };
-        };
+
+        return debounced;
     }
 
     return funcs.debounce = debounce;
@@ -3439,12 +3476,17 @@ define('skylark-langx-events/Listener',[
                 }
 
                 var listeningEvents = listening.events;
+
                 for (var eventName in listeningEvents) {
                     if (event && event != eventName) {
                         continue;
                     }
 
                     var listeningEvent = listeningEvents[eventName];
+
+                    if (!listeningEvent) { 
+                        continue;
+                    }
 
                     for (var j = 0; j < listeningEvent.length; j++) {
                         if (!callback || callback == listeningEvent[i]) {
@@ -3612,13 +3654,15 @@ define('skylark-langx-events/Emitter',[
                     if (ns && (!listener.ns ||  !listener.ns.startsWith(ns))) {
                         continue;
                     }
-                    if (e.data) {
-                        if (listener.data) {
-                            e.data = mixin({}, listener.data, e.data);
-                        }
-                    } else {
-                        e.data = listener.data || null;
+
+                    if (listener.data) {
+                        e.data = mixin({}, listener.data, e.data);
                     }
+                    if (args.length == 2 && isPlainObject(args[1])) {
+                        e.data = e.data || {};
+                        mixin(e.data,args[1]);
+                    }
+
                     listener.fn.apply(listener.ctx, args);
                     if (listener.one) {
                         listeners[i] = null;
@@ -3640,6 +3684,10 @@ define('skylark-langx-events/Emitter',[
         },
 
         off: function(events, callback) {
+            if (!events) {
+              this._hub = null;
+              return;
+            }
             var _hub = this._hub || (this._hub = {});
             if (isString(events)) {
                 events = events.split(/\s/)
@@ -10574,7 +10622,7 @@ define('skylark-langx/langx',[
 
     return skylark.langx = langx;
 });
-define('skylark-ajaxify-routers/routers',[
+define('skylark-appify-routers/routers',[
 	"skylark-langx/skylark",
 	"skylark-langx/langx"	
 ],function(skylark,langx){
@@ -10588,7 +10636,7 @@ define('skylark-ajaxify-routers/routers',[
 	});	
 });
 
-define('skylark-ajaxify-routers/Route',[
+define('skylark-appify-routers/Route',[
 	"skylark-langx/langx",
 	"./routers"
 ],function(langx,routers){
@@ -10726,7 +10774,7 @@ define('skylark-ajaxify-routers/Route',[
 
 	return routers.Route = Route;	
 });
-define('skylark-ajaxify-routers/Router',[
+define('skylark-appify-routers/Router',[
     "skylark-langx/langx",
     "./routers",
     "./Route"
@@ -11033,7 +11081,7 @@ define('skylark-ajaxify-routers/Router',[
     return routers.Router = Router;
 });
 
-define('skylark-ajaxify-routers/main',[
+define('skylark-appify-routers/main',[
     "./routers",
     "./Router",
     "./Route"
@@ -11041,12 +11089,12 @@ define('skylark-ajaxify-routers/main',[
     return routers;
 });
 
-define('skylark-ajaxify-routers', ['skylark-ajaxify-routers/main'], function (main) { return main; });
+define('skylark-appify-routers', ['skylark-appify-routers/main'], function (main) { return main; });
 
-define('skylark-ajaxify-spa/spa',[
+define('skylark-appify-spa/spa',[
     "skylark-langx/skylark",
     "skylark-langx/langx",
-    "skylark-ajaxify-routers"
+    "skylark-appify-routers"
 ], function(skylark, langx, routers) {
     var Deferred = langx.Deferred;
 
@@ -11391,14 +11439,14 @@ define('skylark-ajaxify-spa/spa',[
     return skylark.attach("ajaxify.spa",spa);
 });
 
-define('skylark-ajaxify-spa/main',[
+define('skylark-appify-spa/main',[
     "./spa"
 ], function(spa) {
     return spa;
 });
 
-define('skylark-ajaxify-spa', ['skylark-ajaxify-spa/main'], function (main) { return main; });
+define('skylark-appify-spa', ['skylark-appify-spa/main'], function (main) { return main; });
 
 
 },this);
-//# sourceMappingURL=sourcemaps/skylark-ajaxify-spa-all.js.map
+//# sourceMappingURL=sourcemaps/skylark-appify-spa-all.js.map

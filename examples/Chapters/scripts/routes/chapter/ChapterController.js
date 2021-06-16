@@ -4,7 +4,7 @@ define([
     "text!./templates/chapter2.html",
     "text!./templates/chapter3.html"
 ],function(skylarkjs,tpl1,tpl2,tpl3){
-    var spa = skylarkjs.ajaxify.spa,
+    var spa = skylarkjs.appify.spa,
         noder = skylarkjs.domx.noder,
         $ = skylarkjs.domx.query;
         

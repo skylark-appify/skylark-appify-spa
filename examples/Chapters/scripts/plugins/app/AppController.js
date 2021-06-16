@@ -1,7 +1,7 @@
 define([
     "skylarkjs"
 ], function(skylarkjs) {
-    var spa = skylarkjs.ajaxify.spa,
+    var spa = skylarkjs.appify.spa,
     	fx = skylarkjs.domx.fx,
         $ = skylarkjs.domx.query;
 
