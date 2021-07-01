@@ -343,5 +343,5 @@ define([
 
     });
 
-    return skylark.attach("ajaxify.spa",spa);
+    return skylark.attach("appify.spa",spa);
 });

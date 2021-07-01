@@ -431,7 +431,7 @@ define('skylark-appify-spa/spa',[
 
     });
 
-    return skylark.attach("ajaxify.spa",spa);
+    return skylark.attach("appify.spa",spa);
 });
 
 define('skylark-appify-spa/main',[
