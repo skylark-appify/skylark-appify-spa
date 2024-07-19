@@ -14,20 +14,17 @@ require.config({
 });
 
 require(["skylark-domx"],function() {
+  require(["skylark-appify-routers"],function() {
+    require(["skylark-langx/skylark","scripts/config","skylark-appify-spa"], function (skylark,config,spa) {
+      var app = spa(config);
 
-require(["skylark-appify-routers"],function() {
-  require(["skylark-langx/skylark","scripts/config","skylark-appify-spa"], function (skylark,config,spa) {
-    var app = spa(config);
+      window.go =  function(path) {
+        app.go(path);
+      };
 
-    window.go =  function(path) {
-       app.go(path);
-    };
-
-    app.prepare().then(function(){
-      app.run();
-    })
-
+      app.prepare().then(function(){
+        app.run();
+      })
+    });
   });
- });
-
  });

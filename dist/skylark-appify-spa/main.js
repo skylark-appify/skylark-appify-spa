@@ -5,5 +5,5 @@
  * @link www.skylarkjs.org
  * @license MIT
  */
-define(["./spa"],function(n){return n});
+define(["./spa","./application","./page","./plugin","./plugin_controller","./route","./route_controller","./router"],function(r){return r});
 //# sourceMappingURL=sourcemaps/main.js.map

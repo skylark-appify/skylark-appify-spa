@@ -5,10 +5,8 @@
  * @link www.skylarkjs.org
  * @license MIT
  */
-(function(factory,globals) {
-  var define = globals.define,
-      require = globals.require,
-      isAmd = (typeof define === 'function' && define.amd),
+(function(factory,globals,define,require) {
+  var isAmd = (typeof define === 'function' && define.amd),
       isCmd = (!isAmd && typeof exports !== 'undefined');
 
   if (!isAmd && !define) {
@@ -87,18 +85,273 @@
 })(function(define,require) {
 
 define('skylark-appify-spa/spa',[
-    "skylark-langx/skylark",
-    "skylark-langx/langx",
-    "skylark-appify-routers"
-], function(skylark, langx, routers) {
-    var Deferred = langx.Deferred;
+    "skylark-langx/skylark"
+], function(skylark) {
 
-    function createEvent(type, props) {
-        var e = new CustomEvent(type, props);
-        return langx.safeMixin(e, props);
+    var spa = function(config) {
+ 		return spa.Application(config);
     }
 
+
+    return skylark.attach("appify.spa",spa);
+});
+
+define('skylark-appify-spa/router',[
+    "skylark-appify-routers",
+    "./spa"
+], function(routers,spa) {
     var router = new routers.Router();
+
+    return spa.router = router;
+});
+
+define('skylark-appify-spa/application',[
+    "skylark-langx/langx",
+    "./spa",
+    "./router"
+], function(langx, spa,router) {
+    var Deferred = langx.Deferred;
+
+
+    var Application = langx.Evented.inherit({
+        klassName: "SpaApplication",
+
+        init: function(config) {
+
+            var plugins = this._plugins = {};
+
+            config = this._config = langx.mixin({
+                plugins: {}
+            }, config, true);
+
+            langx.each(config.plugins, function(pluginName, setting) {
+                plugins[pluginName] = new spa.Plugin(pluginName, setting);
+            });
+
+            router.routes(config.routes);
+
+            this._router = router;
+
+            this._page = new spa.Page(config.page);
+
+            document.title = config.title;
+            var baseUrl = config.baseUrl;
+            if (baseUrl === undefined) {
+                baseUrl = config.baseUrl = (new langx.URL(document.baseURI)).pathname;
+            }
+            router.baseUrl(baseUrl);
+
+            if (config.homePath) {
+                router.homePath(config.homePath);
+            }
+
+        },
+
+        baseUrl : function() {
+            return router.baseUrl();
+        },
+
+        getConfig: function(key) {
+            return key ? this._config[key] : this._config;
+        },
+
+        go: function(path, force) {
+            router.go(path, force);
+            return this;
+        },
+
+        page: function() {
+            return this._page;
+        },
+
+        prepare: function() {
+            if (this._prepared) {
+                return Deferred.resolve();
+            }
+            var self = this;
+
+            var promises0 = langx.map(this._plugins, function(plugin, name) {
+                if (plugin.isHooked("starting")) {
+                    return plugin.prepare();
+                }
+            });
+
+            return Deferred.all(promises0).then(function() {
+                router.trigger(langx.createEvent("starting", {
+                    spa: self
+                }));
+                var promises1 = langx.map(router.routes(), function(route, name) {
+                        if (route.lazy === false) {
+                            return route.prepare();
+                        }
+                    }),
+                    promises2 = langx.map(self._plugins, function(plugin, name) {
+                        if (!plugin.isHooked("starting")) {
+                            return plugin.prepare();
+                        }
+                    });
+
+
+                return Deferred.all(promises1.concat(promises2)).then(function() {
+                    self._prepared = true;
+                });
+            });
+        },
+
+        run: function() {
+            this._router.start();
+            router.trigger(langx.createEvent("started", {
+                spa: this
+            }));
+        }
+    });
+
+
+    return spa.Application = Application;
+});
+
+define('skylark-appify-spa/page',[
+    "skylark-langx/langx",
+    "./spa",
+    "./router"
+], function(langx, spa,router) {
+    var Deferred = langx.Deferred;
+
+    var Page = langx.Evented.inherit({
+        klassName: "SpaPage",
+
+        init: function(params) {
+            params = langx.mixin({
+                "routeViewer": "body"
+            }, params);
+
+            this._params = params;
+            this._rvc = document.querySelector(params.routeViewer);
+            this._router = router;
+
+            router.on("routed", langx.proxy(this, "refresh"));
+        },
+
+        prepare: function() {
+
+        },
+
+        //Refreshes the route
+        refresh: function() {
+            var curCtx = router.current(),
+                prevCtx = router.previous();
+            var content = curCtx.route.render(curCtx);
+            if (content===undefined || content===null) {
+                return;
+            }
+            if (langx.isString(content)) {
+                this._rvc.innerHTML = content;
+            } else {
+                this._rvc.innerHTML = "";
+                this._rvc.appendChild(content);
+            }
+            curCtx.route.trigger(langx.createEvent("rendered", {
+                route: curCtx.route,
+                content: content
+            }));
+        }
+    });
+
+    return spa.Page = Page;
+});
+
+define('skylark-appify-spa/plugin',[
+    "skylark-langx/langx",
+    "./spa",
+    "./router"
+], function(langx, spa, router) {
+    var Deferred = langx.Deferred;
+
+    var Plugin = langx.Evented.inherit({
+        klassName: "SpaPlugin",
+
+        init: function(name, setting) {
+            this.name = name;
+
+            if (langx.isString(setting.hookers)) {
+                setting.hookers = setting.hookers.split(" ");
+            }
+            this._setting = setting;
+        },
+
+        isHooked: function(eventName) {
+            var hookers = this._setting.hookers || [];
+            return hookers.indexOf(eventName) > -1;
+        },
+
+        prepare: function() {
+            var d = new Deferred(),
+                setting = this._setting,
+                controllerSetting = setting.controller,
+                controller = this.controller,
+                self = this;
+            require([controllerSetting.type], function(type) {
+                controller = self.controller = new type(controllerSetting);
+                router.on(setting.hookers, {
+                    plugin: self
+                }, langx.proxy(controller.perform, controller));
+                d.resolve();
+            });
+            return d.then(function() {
+                var e = langx.createEvent("preparing", {
+                    plugin: self,
+                    result: true
+                });
+                self.trigger(e);
+                return Deferred.when(e.result).then(function() {
+                    self._prepared = true;
+                });
+            });
+        },
+
+        trigger: function(e) {
+            var controller = this.controller;
+            if (controller) {
+                return controller.perform(e);
+            } else {
+                return this.overrided(e);
+            }
+        }
+    });
+
+    return spa.Plugin = Plugin;
+});
+
+define('skylark-appify-spa/plugin_controller',[
+    "skylark-langx/langx",
+    "./spa"
+], function(langx, spa) {
+
+    var PluginController = langx.Evented.inherit({
+        klassName: "SpaPluginController",
+
+        init: function(plugin) {
+            this.plugin = plugin;
+        },
+
+        perform: function(e) {
+            var eventName = e.type;
+            if (this[eventName]) {
+                return this[eventName].call(this, e);
+            }
+
+        }
+    });
+
+    return spa.PluginController = PluginController;
+});
+
+define('skylark-appify-spa/route',[
+    "skylark-langx/langx",
+    "./spa",
+    "./router"
+], function(langx, spa,router) {
+    var Deferred = langx.Deferred;
 
     var Route = router.Route = router.Route.inherit({
         klassName: "SpaRoute",
@@ -148,7 +401,7 @@ define('skylark-appify-spa/spa',[
             });
 
             return d.then(function() {
-                var e = createEvent("preparing", {
+                var e = langx.createEvent("preparing", {
                     route: self,
                     result: true
                 });
@@ -160,7 +413,7 @@ define('skylark-appify-spa/spa',[
         },
 
         render: function(ctx) {
-            var e = createEvent("rendering", {
+            var e = langx.createEvent("rendering", {
                 route: this,
                 context: ctx,
                 content: this.content
@@ -178,6 +431,14 @@ define('skylark-appify-spa/spa',[
             }
         }
     });
+
+    return spa.Route = Route;;
+});
+
+define('skylark-appify-spa/route_controller',[
+    "skylark-langx/langx",
+    "./spa"
+], function(langx, spa) {
 
 
     var RouteController = langx.Evented.inherit({
@@ -202,240 +463,20 @@ define('skylark-appify-spa/spa',[
         }
     });
 
-    var Page = langx.Evented.inherit({
-        klassName: "SpaPage",
-
-        init: function(params) {
-            params = langx.mixin({
-                "routeViewer": "body"
-            }, params);
-
-            this._params = params;
-            this._rvc = document.querySelector(params.routeViewer);
-            this._router = router;
-
-            router.on("routed", langx.proxy(this, "refresh"));
-        },
-
-        prepare: function() {
-
-        },
-
-        //Refreshes the route
-        refresh: function() {
-            var curCtx = router.current(),
-                prevCtx = router.previous();
-            var content = curCtx.route.render(curCtx);
-            if (content===undefined || content===null) {
-                return;
-            }
-            if (langx.isString(content)) {
-                this._rvc.innerHTML = content;
-            } else {
-                this._rvc.innerHTML = "";
-                this._rvc.appendChild(content);
-            }
-            curCtx.route.trigger(createEvent("rendered", {
-                route: curCtx.route,
-                content: content
-            }));
-        }
-    });
-
-    var Plugin = langx.Evented.inherit({
-        klassName: "SpaPlugin",
-
-        init: function(name, setting) {
-            this.name = name;
-
-            if (langx.isString(setting.hookers)) {
-                setting.hookers = setting.hookers.split(" ");
-            }
-            this._setting = setting;
-        },
-
-        isHooked: function(eventName) {
-            var hookers = this._setting.hookers || [];
-            return hookers.indexOf(eventName) > -1;
-        },
-
-        prepare: function() {
-            var d = new Deferred(),
-                setting = this._setting,
-                controllerSetting = setting.controller,
-                controller = this.controller,
-                self = this;
-            require([controllerSetting.type], function(type) {
-                controller = self.controller = new type(controllerSetting);
-                router.on(setting.hookers, {
-                    plugin: self
-                }, langx.proxy(controller.perform, controller));
-                d.resolve();
-            });
-            return d.then(function() {
-                var e = createEvent("preparing", {
-                    plugin: self,
-                    result: true
-                });
-                self.trigger(e);
-                return Deferred.when(e.result).then(function() {
-                    self._prepared = true;
-                });
-            });
-        },
-
-        trigger: function(e) {
-            var controller = this.controller;
-            if (controller) {
-                return controller.perform(e);
-            } else {
-                return this.overrided(e);
-            }
-        }
-    });
-
-    var PluginController = langx.Evented.inherit({
-        klassName: "SpaPluginController",
-
-        init: function(plugin) {
-            this.plugin = plugin;
-        },
-
-        perform: function(e) {
-            var eventName = e.type;
-            if (this[eventName]) {
-                return this[eventName].call(this, e);
-            }
-
-        }
-    });
-
-    var Application = langx.Evented.inherit({
-        klassName: "SpaApplication",
-
-        init: function(config) {
-            if (app) {
-                return app;
-            }
-            var plugins = this._plugins = {};
-
-            config = this._config = langx.mixin({
-                plugins: {}
-            }, config, true);
-
-            langx.each(config.plugins, function(pluginName, setting) {
-                plugins[pluginName] = new Plugin(pluginName, setting);
-            });
-
-            router.routes(config.routes);
-
-            this._router = router;
-
-            this._page = new spa.Page(config.page);
-
-            document.title = config.title;
-            var baseUrl = config.baseUrl;
-            if (baseUrl === undefined) {
-                baseUrl = config.baseUrl = (new langx.URL(document.baseURI)).pathname;
-            }
-            router.baseUrl(baseUrl);
-
-            if (config.homePath) {
-                router.homePath(config.homePath);
-            }
-
-            app = this;
-        },
-
-        baseUrl : function() {
-            return router.baseUrl();
-        },
-
-        getConfig: function(key) {
-            return key ? this._config[key] : this._config;
-        },
-
-        go: function(path, force) {
-            router.go(path, force);
-            return this;
-        },
-
-        page: function() {
-            return this._page;
-        },
-
-        prepare: function() {
-            if (this._prepared) {
-                return Deferred.resolve();
-            }
-            var self = this;
-
-            var promises0 = langx.map(this._plugins, function(plugin, name) {
-                if (plugin.isHooked("starting")) {
-                    return plugin.prepare();
-                }
-            });
-
-            return Deferred.all(promises0).then(function() {
-                router.trigger(createEvent("starting", {
-                    spa: self
-                }));
-                var promises1 = langx.map(router.routes(), function(route, name) {
-                        if (route.lazy === false) {
-                            return route.prepare();
-                        }
-                    }),
-                    promises2 = langx.map(self._plugins, function(plugin, name) {
-                        if (!plugin.isHooked("starting")) {
-                            return plugin.prepare();
-                        }
-                    });
 
 
-                return Deferred.all(promises1.concat(promises2)).then(function() {
-                    self._prepared = true;
-                });
-            });
-        },
-
-        run: function() {
-            this._router.start();
-            router.trigger(createEvent("started", {
-                spa: this
-            }));
-        }
-    });
-
-    var app;
-    var spa = function(config) {
-        if (!app) {
-            window[config.name || "app"] = app = new spa.Application(config);
-        }
-
-        return app;
-    }
-
-    langx.mixin(spa, {
-        "Application": Application,
-
-        "Page": Page,
-
-        "Plugin": Plugin,
-        "PluginController": PluginController,
-
-        "Route": Route,
-
-        "router" : router,
-        
-        "RouteController": RouteController
-
-    });
-
-    return skylark.attach("appify.spa",spa);
+    return spa.RouteController = RouteController;
 });
 
 define('skylark-appify-spa/main',[
-    "./spa"
+    "./spa",
+    "./application",
+    "./page",
+    "./plugin",
+    "./plugin_controller",
+    "./route",
+    "./route_controller",
+    "./router"
 ], function(spa) {
     return spa;
 });
@@ -443,5 +484,5 @@ define('skylark-appify-spa/main',[
 define('skylark-appify-spa', ['skylark-appify-spa/main'], function (main) { return main; });
 
 
-},this);
+},this,define,require);
 //# sourceMappingURL=sourcemaps/skylark-appify-spa.js.map

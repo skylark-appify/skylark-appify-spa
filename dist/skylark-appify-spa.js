@@ -5,5 +5,85 @@
  * @link www.skylarkjs.org
  * @license MIT
  */
-!function(t,e){var r=e.define,require=e.require,n="function"==typeof r&&r.amd,i=!n&&"undefined"!=typeof exports;if(!n&&!r){var o={};r=e.define=function(t,e,r){"function"==typeof r?(o[t]={factory:r,deps:e.map(function(e){return function(t,e){if("."!==t[0])return t;var r=e.split("/"),n=t.split("/");r.pop();for(var i=0;i<n.length;i++)"."!=n[i]&&(".."==n[i]?r.pop():r.push(n[i]));return r.join("/")}(e,t)}),resolved:!1,exports:null},require(t)):o[t]={factory:null,resolved:!0,exports:r}},require=e.require=function(t){if(!o.hasOwnProperty(t))throw new Error("Module "+t+" has not been defined");var module=o[t];if(!module.resolved){var r=[];module.deps.forEach(function(t){r.push(require(t))}),module.exports=module.factory.apply(e,r)||null,module.resolved=!0}return module.exports}}if(!r)throw new Error("The module utility (ex: requirejs or skylark-utils) is not loaded!");if(function(t,require){t("skylark-appify-spa/spa",["skylark-langx/skylark","skylark-langx/langx","skylark-appify-routers"],function(t,e,r){var n=e.Deferred;function i(t,r){var n=new CustomEvent(t,r);return e.safeMixin(n,r)}var o,a=new r.Router,s=a.Route=a.Route.inherit({klassName:"SpaRoute",init:function(t,r){this.overrided(t,r),this.content=r.content,this.forceRefresh=r.forceRefresh,this.data=r.data;var n=this;["preparing","rendering","rendered"].forEach(function(t){e.isFunction(r[t])&&n.on(t,r[t])})},_entering:function(t){return this.forceRefresh||t.force||!this._prepared?this.prepare():this},getConfigData:function(t){return t?this.data[t]:this.data},getNamedValue:function(){return window.location.pathname.match(this.regex)},prepare:function(){var t=new n,e=this._setting,r=e.controller,o=(this.controller,this);e.content,e.contentPath;return require([r.type],function(e){o.controller=new e(r),t.resolve()}),t.then(function(){var t=i("preparing",{route:o,result:!0});return o.trigger(t),n.when(t.result).then(function(){o._prepared=!0})})},render:function(t){var e=i("rendering",{route:this,context:t,content:this.content});return this.trigger(e),e.content},trigger:function(t){var e=this.controller;return e?e.perform(t):this.overrided(t)}}),u=e.Evented.inherit({klassName:"SpaRouteController",init:function(t,e){e=e||{},this.content=e.content,this.data=e.data},getConfigData:function(t){return t?this.data[t]:this.data},perform:function(t){var e=t.type;if(this[e])return this[e].call(this,t)}}),p=e.Evented.inherit({klassName:"SpaPage",init:function(t){t=e.mixin({routeViewer:"body"},t),this._params=t,this._rvc=document.querySelector(t.routeViewer),this._router=a,a.on("routed",e.proxy(this,"refresh"))},prepare:function(){},refresh:function(){var t=a.current(),r=(a.previous(),t.route.render(t));void 0!==r&&null!==r&&(e.isString(r)?this._rvc.innerHTML=r:(this._rvc.innerHTML="",this._rvc.appendChild(r)),t.route.trigger(i("rendered",{route:t.route,content:r})))}}),l=e.Evented.inherit({klassName:"SpaPlugin",init:function(t,r){this.name=t,e.isString(r.hookers)&&(r.hookers=r.hookers.split(" ")),this._setting=r},isHooked:function(t){var e=this._setting.hookers||[];return e.indexOf(t)>-1},prepare:function(){var t=new n,r=this._setting,o=r.controller,s=this.controller,u=this;return require([o.type],function(n){s=u.controller=new n(o),a.on(r.hookers,{plugin:u},e.proxy(s.perform,s)),t.resolve()}),t.then(function(){var t=i("preparing",{plugin:u,result:!0});return u.trigger(t),n.when(t.result).then(function(){u._prepared=!0})})},trigger:function(t){var e=this.controller;return e?e.perform(t):this.overrided(t)}}),f=e.Evented.inherit({klassName:"SpaPluginController",init:function(t){this.plugin=t},perform:function(t){var e=t.type;if(this[e])return this[e].call(this,t)}}),h=e.Evented.inherit({klassName:"SpaApplication",init:function(t){if(o)return o;var r=this._plugins={};t=this._config=e.mixin({plugins:{}},t,!0),e.each(t.plugins,function(t,e){r[t]=new l(t,e)}),a.routes(t.routes),this._router=a,this._page=new c.Page(t.page),document.title=t.title;var n=t.baseUrl;void 0===n&&(n=t.baseUrl=new e.URL(document.baseURI).pathname),a.baseUrl(n),t.homePath&&a.homePath(t.homePath),o=this},baseUrl:function(){return a.baseUrl()},getConfig:function(t){return t?this._config[t]:this._config},go:function(t,e){return a.go(t,e),this},page:function(){return this._page},prepare:function(){if(this._prepared)return n.resolve();var t=this,r=e.map(this._plugins,function(t,e){if(t.isHooked("starting"))return t.prepare()});return n.all(r).then(function(){a.trigger(i("starting",{spa:t}));var r=e.map(a.routes(),function(t,e){if(!1===t.lazy)return t.prepare()}),o=e.map(t._plugins,function(t,e){if(!t.isHooked("starting"))return t.prepare()});return n.all(r.concat(o)).then(function(){t._prepared=!0})})},run:function(){this._router.start(),a.trigger(i("started",{spa:this}))}}),c=function(t){return o||(window[t.name||"app"]=o=new c.Application(t)),o};return e.mixin(c,{Application:h,Page:p,Plugin:l,PluginController:f,Route:s,router:a,RouteController:u}),t.attach("appify.spa",c)}),t("skylark-appify-spa/main",["./spa"],function(t){return t}),t("skylark-appify-spa",["skylark-appify-spa/main"],function(t){return t})}(r,require),!n){var a=require("skylark-langx-ns");i?module.exports=a:e.skylarkjs=a}}(0,this);
+(function(factory,globals,define,require) {
+  var isAmd = (typeof define === 'function' && define.amd),
+      isCmd = (!isAmd && typeof exports !== 'undefined');
+
+  if (!isAmd && !define) {
+    var map = {};
+    function absolute(relative, base) {
+        if (relative[0]!==".") {
+          return relative;
+        }
+        var stack = base.split("/"),
+            parts = relative.split("/");
+        stack.pop(); 
+        for (var i=0; i<parts.length; i++) {
+            if (parts[i] == ".")
+                continue;
+            if (parts[i] == "..")
+                stack.pop();
+            else
+                stack.push(parts[i]);
+        }
+        return stack.join("/");
+    }
+    define = globals.define = function(id, deps, factory) {
+        if (typeof factory == 'function') {
+            map[id] = {
+                factory: factory,
+                deps: deps.map(function(dep){
+                  return absolute(dep,id);
+                }),
+                resolved: false,
+                exports: null
+            };
+            require(id);
+        } else {
+            map[id] = {
+                factory : null,
+                resolved : true,
+                exports : factory
+            };
+        }
+    };
+    require = globals.require = function(id) {
+        if (!map.hasOwnProperty(id)) {
+            throw new Error('Module ' + id + ' has not been defined');
+        }
+        var module = map[id];
+        if (!module.resolved) {
+            var args = [];
+
+            module.deps.forEach(function(dep){
+                args.push(require(dep));
+            })
+
+            module.exports = module.factory.apply(globals, args) || null;
+            module.resolved = true;
+        }
+        return module.exports;
+    };
+  }
+  
+  if (!define) {
+     throw new Error("The module utility (ex: requirejs or skylark-utils) is not loaded!");
+  }
+
+  factory(define,require);
+
+  if (!isAmd) {
+    var skylarkjs = require("skylark-langx-ns");
+
+    if (isCmd) {
+      module.exports = skylarkjs;
+    } else {
+      globals.skylarkjs  = skylarkjs;
+    }
+  }
+
+})(function(define,require) {
+
+define("skylark-appify-spa/spa",["skylark-langx/skylark"],function(e){function r(e){return r.Application(e)}return e.attach("appify.spa",r)}),define("skylark-appify-spa/router",["skylark-appify-routers","./spa"],function(e,r){e=new e.Router;return r.router=e}),define("skylark-appify-spa/application",["skylark-langx/langx","./spa","./router"],function(n,i,a){var o=n.Deferred,e=n.Evented.inherit({klassName:"SpaApplication",init:function(e){var t=this._plugins={},r=(e=this._config=n.mixin({plugins:{}},e,!0),n.each(e.plugins,function(e,r){t[e]=new i.Plugin(e,r)}),a.routes(e.routes),this._router=a,this._page=new i.Page(e.page),document.title=e.title,e.baseUrl);void 0===r&&(r=e.baseUrl=new n.URL(document.baseURI).pathname),a.baseUrl(r),e.homePath&&a.homePath(e.homePath)},baseUrl:function(){return a.baseUrl()},getConfig:function(e){return e?this._config[e]:this._config},go:function(e,r){return a.go(e,r),this},page:function(){return this._page},prepare:function(){var t,e;return this._prepared?o.resolve():(e=n.map((t=this)._plugins,function(e,r){if(e.isHooked("starting"))return e.prepare()}),o.all(e).then(function(){a.trigger(n.createEvent("starting",{spa:t}));var e=n.map(a.routes(),function(e,r){if(!1===e.lazy)return e.prepare()}),r=n.map(t._plugins,function(e,r){if(!e.isHooked("starting"))return e.prepare()});return o.all(e.concat(r)).then(function(){t._prepared=!0})}))},run:function(){this._router.start(),a.trigger(n.createEvent("started",{spa:this}))}});return i.Application=e}),define("skylark-appify-spa/page",["skylark-langx/langx","./spa","./router"],function(t,e,n){t.Deferred;var r=t.Evented.inherit({klassName:"SpaPage",init:function(e){e=t.mixin({routeViewer:"body"},e),this._params=e,this._rvc=document.querySelector(e.routeViewer),(this._router=n).on("routed",t.proxy(this,"refresh"))},prepare:function(){},refresh:function(){var e=n.current(),r=(n.previous(),e.route.render(e));null!=r&&(t.isString(r)?this._rvc.innerHTML=r:(this._rvc.innerHTML="",this._rvc.appendChild(r)),e.route.trigger(t.createEvent("rendered",{route:e.route,content:r})))}});return e.Page=r}),define("skylark-appify-spa/plugin",["skylark-langx/langx","./spa","./router"],function(o,e,s){var u=o.Deferred,r=o.Evented.inherit({klassName:"SpaPlugin",init:function(e,r){this.name=e,o.isString(r.hookers)&&(r.hookers=r.hookers.split(" ")),this._setting=r},isHooked:function(e){return-1<(this._setting.hookers||[]).indexOf(e)},prepare:function(){var r,t=new u,n=this._setting,i=n.controller,a=(this.controller,this);return require([i.type],function(e){r=a.controller=new e(i),s.on(n.hookers,{plugin:a},o.proxy(r.perform,r)),t.resolve()}),t.then(function(){var e=o.createEvent("preparing",{plugin:a,result:!0});return a.trigger(e),u.when(e.result).then(function(){a._prepared=!0})})},trigger:function(e){var r=this.controller;return r?r.perform(e):this.overrided(e)}});return e.Plugin=r}),define("skylark-appify-spa/plugin_controller",["skylark-langx/langx","./spa"],function(e,r){e=e.Evented.inherit({klassName:"SpaPluginController",init:function(e){this.plugin=e},perform:function(e){var r=e.type;if(this[r])return this[r].call(this,e)}});return r.PluginController=e}),define("skylark-appify-spa/route",["skylark-langx/langx","./spa","./router"],function(i,e,r){var a=i.Deferred,r=r.Route=r.Route.inherit({klassName:"SpaRoute",init:function(e,r){this.overrided(e,r),this.content=r.content,this.forceRefresh=r.forceRefresh,this.data=r.data;var t=this;["preparing","rendering","rendered"].forEach(function(e){i.isFunction(r[e])&&t.on(e,r[e])})},_entering:function(e){return this.forceRefresh||e.force||!this._prepared?this.prepare():this},getConfigData:function(e){return e?this.data[e]:this.data},getNamedValue:function(){return window.location.pathname.match(this.regex)},prepare:function(){var r=new a,e=this._setting,t=e.controller,n=(this.controller,this);e.content,e.contentPath;return require([t.type],function(e){n.controller=new e(t),r.resolve()}),r.then(function(){var e=i.createEvent("preparing",{route:n,result:!0});return n.trigger(e),a.when(e.result).then(function(){n._prepared=!0})})},render:function(e){e=i.createEvent("rendering",{route:this,context:e,content:this.content});return this.trigger(e),e.content},trigger:function(e){var r=this.controller;return r?r.perform(e):this.overrided(e)}});return e.Route=r}),define("skylark-appify-spa/route_controller",["skylark-langx/langx","./spa"],function(e,r){e=e.Evented.inherit({klassName:"SpaRouteController",init:function(e,r){this.content=(r=r||{}).content,this.data=r.data},getConfigData:function(e){return e?this.data[e]:this.data},perform:function(e){var r=e.type;if(this[r])return this[r].call(this,e)}});return r.RouteController=e}),define("skylark-appify-spa/main",["./spa","./application","./page","./plugin","./plugin_controller","./route","./route_controller","./router"],function(e){return e}),define("skylark-appify-spa",["skylark-appify-spa/main"],function(e){return e});
+},this,define,require);
 //# sourceMappingURL=sourcemaps/skylark-appify-spa.js.map

@@ -5,5 +5,5 @@
  * @link www.skylarkjs.org
  * @license MIT
  */
-define(["skylark-langx/skylark"],function(n){function a(n){return a.Application(n)}return n.attach("appify.spa",a)});
-//# sourceMappingURL=sourcemaps/spa.js.map
+define(["skylark-appify-routers","./spa"],function(r,e){r=new r.Router;return e.router=r});
+//# sourceMappingURL=sourcemaps/router.js.map
