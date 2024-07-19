@@ -1,6 +1,5 @@
 define([
     "./spa",
-    "./application",
     "./page",
     "./plugin",
     "./plugin_controller",

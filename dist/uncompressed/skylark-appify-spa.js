@@ -89,7 +89,7 @@ define('skylark-appify-spa/spa',[
 ], function(skylark) {
 
     var spa = function(config) {
- 		return spa.Application(config);
+ 		return spa.Page(config);
     }
 
 
@@ -105,16 +105,15 @@ define('skylark-appify-spa/router',[
     return spa.router = router;
 });
 
-define('skylark-appify-spa/application',[
+define('skylark-appify-spa/page',[
     "skylark-langx/langx",
     "./spa",
     "./router"
 ], function(langx, spa,router) {
     var Deferred = langx.Deferred;
 
-
-    var Application = langx.Evented.inherit({
-        klassName: "SpaApplication",
+    var Page = langx.Evented.inherit({
+        klassName: "SpaPage",
 
         init: function(config) {
 
@@ -132,7 +131,14 @@ define('skylark-appify-spa/application',[
 
             this._router = router;
 
-            this._page = new spa.Page(config.page);
+            ///this._page = new spa.Page(config.page);
+            var params = langx.mixin({
+                "routeViewer": "body"
+            }, config.page);
+
+            this._params = params;
+            this._rvc = document.querySelector(params.routeViewer);
+            router.on("routed", langx.proxy(this, "refresh"));
 
             document.title = config.title;
             var baseUrl = config.baseUrl;
@@ -144,6 +150,7 @@ define('skylark-appify-spa/application',[
             if (config.homePath) {
                 router.homePath(config.homePath);
             }
+
 
         },
 
@@ -160,11 +167,29 @@ define('skylark-appify-spa/application',[
             return this;
         },
 
-        page: function() {
-            return this._page;
+
+        //Refreshes the route
+        refresh: function() {
+            var curCtx = router.current(),
+                prevCtx = router.previous();
+            var content = curCtx.route.render(curCtx);
+            if (content===undefined || content===null) {
+                return;
+            }
+            if (langx.isString(content)) {
+                this._rvc.innerHTML = content;
+            } else {
+                this._rvc.innerHTML = "";
+                this._rvc.appendChild(content);
+            }
+            curCtx.route.trigger(langx.createEvent("rendered", {
+                route: curCtx.route,
+                content: content
+            }));
         },
 
         prepare: function() {
+
             if (this._prepared) {
                 return Deferred.resolve();
             }
@@ -202,57 +227,6 @@ define('skylark-appify-spa/application',[
             this._router.start();
             router.trigger(langx.createEvent("started", {
                 spa: this
-            }));
-        }
-    });
-
-
-    return spa.Application = Application;
-});
-
-define('skylark-appify-spa/page',[
-    "skylark-langx/langx",
-    "./spa",
-    "./router"
-], function(langx, spa,router) {
-    var Deferred = langx.Deferred;
-
-    var Page = langx.Evented.inherit({
-        klassName: "SpaPage",
-
-        init: function(params) {
-            params = langx.mixin({
-                "routeViewer": "body"
-            }, params);
-
-            this._params = params;
-            this._rvc = document.querySelector(params.routeViewer);
-            this._router = router;
-
-            router.on("routed", langx.proxy(this, "refresh"));
-        },
-
-        prepare: function() {
-
-        },
-
-        //Refreshes the route
-        refresh: function() {
-            var curCtx = router.current(),
-                prevCtx = router.previous();
-            var content = curCtx.route.render(curCtx);
-            if (content===undefined || content===null) {
-                return;
-            }
-            if (langx.isString(content)) {
-                this._rvc.innerHTML = content;
-            } else {
-                this._rvc.innerHTML = "";
-                this._rvc.appendChild(content);
-            }
-            curCtx.route.trigger(langx.createEvent("rendered", {
-                route: curCtx.route,
-                content: content
             }));
         }
     });
@@ -470,7 +444,6 @@ define('skylark-appify-spa/route_controller',[
 
 define('skylark-appify-spa/main',[
     "./spa",
-    "./application",
     "./page",
     "./plugin",
     "./plugin_controller",

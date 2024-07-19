@@ -3,7 +3,7 @@ define([
 ], function(skylark) {
 
     var spa = function(config) {
- 		return spa.Application(config);
+ 		return spa.Page(config);
     }
 
 

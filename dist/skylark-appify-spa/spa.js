@@ -5,5 +5,5 @@
  * @link www.skylarkjs.org
  * @license MIT
  */
-define(["skylark-langx/skylark"],function(n){function a(n){return a.Application(n)}return n.attach("appify.spa",a)});
+define(["skylark-langx/skylark"],function(a){function n(a){return n.Page(a)}return a.attach("appify.spa",n)});
 //# sourceMappingURL=sourcemaps/spa.js.map
